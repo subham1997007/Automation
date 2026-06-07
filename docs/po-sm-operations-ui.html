@@ -1,0 +1,1279 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PO SM Operations Console</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080b10;
+      --surface: #111821;
+      --surface-2: #172131;
+      --line: #263345;
+      --text: #f6f8fb;
+      --muted: #9eaec2;
+      --jira: #4ea1ff;
+      --gitlab: #ff9b42;
+      --ok: #48d597;
+      --warn: #f0c15c;
+      --risk: #ff6b7a;
+      --violet: #b994ff;
+      --radius: 8px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px) 0 0 / 42px 42px,
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px) 0 0 / 42px 42px,
+        var(--bg);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1440px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 20px 0 28px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(17, 24, 33, 0.88);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark,
+    .icon {
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border: 1px solid currentColor;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      color: var(--jira);
+      border-radius: 8px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .brand p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status-strip {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 30px;
+      padding: 5px 9px;
+      border: 1px solid color-mix(in srgb, var(--accent) 44%, var(--line));
+      border-radius: 999px;
+      color: color-mix(in srgb, var(--accent) 82%, white);
+      background: color-mix(in srgb, var(--accent) 11%, transparent);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .pill.jira { --accent: var(--jira); }
+    .pill.gitlab { --accent: var(--gitlab); }
+    .pill.ok { --accent: var(--ok); }
+    .pill.warn { --accent: var(--warn); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(330px, 420px) minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(17, 24, 33, 0.9);
+      overflow: hidden;
+      box-shadow: 0 20px 70px rgba(0, 0, 0, 0.28);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 54px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(23, 33, 49, 0.82);
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      font-size: 15px;
+      font-weight: 900;
+    }
+
+    .icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      color: var(--accent);
+    }
+
+    .icon svg,
+    .brand-mark svg,
+    .send svg,
+    .tab svg {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .chat {
+      display: grid;
+      grid-template-rows: max-content max-content minmax(0, 1fr) max-content;
+      min-height: 760px;
+    }
+
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      align-content: flex-start;
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .command-chip {
+      min-height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: #0d141e;
+      padding: 7px 10px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .command-chip:hover,
+    .command-chip:focus-visible {
+      color: var(--text);
+      border-color: var(--jira);
+      outline: none;
+    }
+
+    .messages {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: auto;
+    }
+
+    .message {
+      max-width: 94%;
+      padding: 10px 11px;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      color: #eaf5ff;
+      background: rgba(78, 161, 255, 0.16);
+      border: 1px solid rgba(78, 161, 255, 0.34);
+    }
+
+    .message.agent {
+      align-self: flex-start;
+      color: #f8fbff;
+      background: rgba(255, 255, 255, 0.055);
+      border: 1px solid var(--line);
+    }
+
+    .message b {
+      color: var(--warn);
+    }
+
+    .composer {
+      display: grid;
+      grid-template-columns: 1fr 42px;
+      gap: 8px;
+      padding: 12px;
+      border-top: 1px solid var(--line);
+      background: rgba(23, 33, 49, 0.74);
+    }
+
+    .composer input {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--text);
+      background: #0b1119;
+      padding: 0 12px;
+      outline: none;
+    }
+
+    .composer input:focus {
+      border-color: var(--jira);
+      box-shadow: 0 0 0 3px rgba(78, 161, 255, 0.12);
+    }
+
+    .send {
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(78, 161, 255, 0.55);
+      border-radius: 8px;
+      color: #dff0ff;
+      background: #1262a8;
+      cursor: pointer;
+    }
+
+    .workspace {
+      min-height: 760px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      padding: 10px;
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto;
+    }
+
+    .tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 36px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      color: var(--muted);
+      background: transparent;
+      padding: 7px 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .tab.active {
+      color: color-mix(in srgb, var(--accent) 72%, white);
+      border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+    }
+
+    .tab[data-view="jira"] { --accent: var(--jira); }
+    .tab[data-view="gitlab"] { --accent: var(--gitlab); }
+    .tab[data-view="epic"] { --accent: var(--violet); }
+    .tab[data-view="reports"] { --accent: var(--ok); }
+    .tab[data-view="overview"] { --accent: var(--warn); }
+
+    .view {
+      display: none;
+      padding: 16px;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .metric,
+    .section,
+    .timeline-item,
+    .table-wrap {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(11, 17, 25, 0.72);
+    }
+
+    .metric {
+      min-height: 92px;
+      padding: 12px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 25px;
+      line-height: 1;
+    }
+
+    .metric em {
+      display: block;
+      margin-top: 8px;
+      color: color-mix(in srgb, var(--accent) 80%, white);
+      font-style: normal;
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .jira-accent { --accent: var(--jira); }
+    .gitlab-accent { --accent: var(--gitlab); }
+    .ok-accent { --accent: var(--ok); }
+    .warn-accent { --accent: var(--warn); }
+
+    .split {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+      gap: 12px;
+    }
+
+    .section {
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .section h2,
+    .section h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    .live-result {
+      margin-top: 12px;
+    }
+
+    .live-result pre {
+      display: none;
+      max-height: 230px;
+      overflow: auto;
+      margin: 10px 0 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: #d9e7f7;
+      background: #070c12;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+
+    .live-cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .live-card {
+      min-height: 84px;
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.045);
+    }
+
+    .live-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .live-card strong {
+      display: block;
+      margin-top: 7px;
+      font-size: 17px;
+      line-height: 1.2;
+    }
+
+    .live-card em {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-style: normal;
+      line-height: 1.35;
+    }
+
+    .section p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .field-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .field {
+      display: grid;
+      grid-template-columns: 142px 1fr;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      font-size: 13px;
+    }
+
+    .field:last-child {
+      border-bottom: 0;
+    }
+
+    .field span {
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .field strong {
+      color: var(--text);
+      font-weight: 850;
+    }
+
+    .progress-bar {
+      height: 9px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #293343;
+    }
+
+    .progress-bar i {
+      display: block;
+      height: 100%;
+      width: var(--value);
+      background: linear-gradient(90deg, var(--ok), var(--jira));
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 32px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+    }
+
+    .step-no {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 13%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--line));
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .timeline-item h3 {
+      margin: 0;
+      font-size: 13px;
+    }
+
+    .timeline-item p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      color: color-mix(in srgb, var(--accent) 82%, white);
+      border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--line));
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+      font-size: 11px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      padding: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .report-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .report-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(11, 17, 25, 0.72);
+      padding: 14px;
+      min-height: 144px;
+    }
+
+    .report-card h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+    }
+
+    .report-card p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .chart {
+      display: grid;
+      align-items: end;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      height: 110px;
+      margin-top: 12px;
+    }
+
+    .bar {
+      min-height: 10px;
+      height: var(--h);
+      border-radius: 5px 5px 0 0;
+      background: color-mix(in srgb, var(--accent) 78%, #ffffff);
+    }
+
+    @media (max-width: 1050px) {
+      .layout,
+      .split,
+      .summary-grid,
+      .report-grid,
+      .live-cards {
+        grid-template-columns: 1fr;
+      }
+
+      .chat,
+      .workspace {
+        min-height: auto;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .status-strip {
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4 6h16v12H4z"></path><path d="M8 10h8"></path><path d="M8 14h5"></path></svg>
+        </div>
+        <div>
+          <h1>PO and SM Operations Console</h1>
+          <p>Chat-driven Jira updates, GitLab reporting, epic tracking, and delivery status.</p>
+        </div>
+      </div>
+      <div class="status-strip" aria-label="System status">
+        <span class="pill jira">Jira connected</span>
+        <span class="pill gitlab">GitLab connected</span>
+        <span class="pill ok">Guardrails active</span>
+        <span class="pill warn">Approval required</span>
+      </div>
+    </header>
+
+    <section class="layout">
+      <aside class="panel chat" aria-label="Command chat">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="icon jira-accent" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg>
+            </span>
+            Command Center
+          </div>
+          <span class="tag warn-accent">Human approval</span>
+        </div>
+
+        <div class="quick-actions" aria-label="Example commands">
+          <button class="command-chip" data-action="read">Read Jira story</button>
+          <button class="command-chip" data-action="update">Update Jira story</button>
+          <button class="command-chip" data-action="subtasks">Subtask status</button>
+          <button class="command-chip" data-action="create-subtask">Create subtask</button>
+          <button class="command-chip" data-action="epic">Epic progress</button>
+          <button class="command-chip" data-action="gitlab">GitLab report</button>
+        </div>
+
+        <div class="messages" id="messages" aria-live="polite">
+          <div class="message agent">
+            Hi. Ask me to read or update Jira, check subtasks, show the feature or epic, or prepare a GitLab delivery report. I will show a business-friendly result on the right.
+          </div>
+        </div>
+
+        <form class="composer" id="chatForm">
+          <input id="commandInput" aria-label="Command input" placeholder="Ask: can you tell me about BDRSP-1418">
+          <button class="send" aria-label="Send command">
+            <svg viewBox="0 0 24 24"><path d="M22 2L11 13"></path><path d="M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
+          </button>
+        </form>
+      </aside>
+
+      <section class="panel workspace" aria-label="Operations display">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="icon ok-accent" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 19V5"></path><path d="M4 19h16"></path><path d="M8 15l3-3 3 2 5-7"></path></svg>
+            </span>
+            Live Request Display
+          </div>
+          <span class="tag ok-accent" id="activeRequest">Overview view</span>
+        </div>
+
+        <nav class="tabs" aria-label="Result views">
+          <button class="tab active" data-view="overview"><svg viewBox="0 0 24 24"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg>Overview</button>
+          <button class="tab" data-view="jira"><svg viewBox="0 0 24 24"><path d="M8 4h10v10"></path><path d="M6 10l8-8"></path><path d="M6 8v12h12v-4"></path></svg>Jira</button>
+          <button class="tab" data-view="gitlab"><svg viewBox="0 0 24 24"><path d="M6 4l3 7h6l3-7 3 10-9 6-9-6 3-10z"></path></svg>GitLab</button>
+          <button class="tab" data-view="epic"><svg viewBox="0 0 24 24"><path d="M4 6h16"></path><path d="M4 12h10"></path><path d="M4 18h7"></path></svg>Epic</button>
+          <button class="tab" data-view="reports"><svg viewBox="0 0 24 24"><path d="M5 19V5"></path><path d="M9 19v-8"></path><path d="M13 19V9"></path><path d="M17 19v-5"></path></svg>Reports</button>
+        </nav>
+
+        <section class="view active" id="overview">
+          <div class="summary-grid">
+            <div class="metric jira-accent"><span>Jira story</span><strong id="metricStory">No story</strong><em id="metricStoryNote">Ask about a Jira key</em></div>
+            <div class="metric gitlab-accent"><span>GitLab evidence</span><strong id="metricGitLab">No report</strong><em id="metricGitLabNote">Loaded after request</em></div>
+            <div class="metric ok-accent"><span>Epic progress</span><strong id="metricProgress">-</strong><em id="metricProgressNote">Loaded after request</em></div>
+            <div class="metric warn-accent"><span>Action needed</span><strong id="metricAction">-</strong><em id="metricActionNote">Waiting for request</em></div>
+          </div>
+
+          <div class="split">
+            <div class="section">
+              <h2>Request Flow</h2>
+              <div class="timeline" id="requestFlowList">
+                <div class="timeline-item jira-accent">
+                  <span class="step-no">1</span>
+                  <div><h3>Read Jira context</h3><p>Story, description, acceptance criteria, regulatory field, comments, subtasks, parent feature, and linked work.</p></div>
+                  <span class="tag jira-accent">Jira</span>
+                </div>
+                <div class="timeline-item ok-accent">
+                  <span class="step-no">2</span>
+                  <div><h3>Analyze with repository context</h3><p>Match story scope with project files, impacted modules, current branch, and delivery history.</p></div>
+                  <span class="tag ok-accent">Agent</span>
+                </div>
+                <div class="timeline-item gitlab-accent">
+                  <span class="step-no">3</span>
+                  <div><h3>Collect GitLab report</h3><p>Merge requests, pipeline state, commits, reviewers, branches, and open delivery risks.</p></div>
+                  <span class="tag gitlab-accent">GitLab</span>
+                </div>
+                <div class="timeline-item warn-accent">
+                  <span class="step-no">4</span>
+                  <div><h3>Ask approval before update</h3><p>PO or SM reviews suggested Jira changes before any field, subtask, or comment is modified.</p></div>
+                  <span class="tag warn-accent">Gate</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <h2>Recommended PO/SM Actions</h2>
+              <div class="field-list" id="poSmActionsList">
+                <div class="field"><span>Story readiness</span><strong>Confirm AC 4 regression scope</strong></div>
+                <div class="field"><span>Subtask</span><strong>Keep one implementation subtask only</strong></div>
+                <div class="field"><span>GitLab</span><strong>Review latest pipeline before sprint report</strong></div>
+                <div class="field"><span>Next step</span><strong>Approve Jira update or request rewrite</strong></div>
+              </div>
+            </div>
+          </div>
+          <div class="section live-result">
+            <h2>Latest Automation Response</h2>
+            <p id="liveSummary">Submit a command to load live Jira or GitLab data from the local Automation UI server.</p>
+            <div class="live-cards" id="liveCards"></div>
+            <pre id="liveJson" aria-hidden="true">No command executed yet.</pre>
+          </div>
+        </section>
+
+        <section class="view" id="jira">
+          <div class="split">
+            <div class="section">
+              <h2>Jira Story Summary</h2>
+              <div class="field-list">
+                <div class="field"><span>Story</span><strong id="jiraStoryField">No story selected</strong></div>
+                <div class="field"><span>Title</span><strong id="jiraTitleField">Waiting for request</strong></div>
+                <div class="field"><span>Status</span><strong id="jiraStatusField">-</strong></div>
+                <div class="field"><span>Owner</span><strong id="jiraOwnerField">-</strong></div>
+                <div class="field"><span>Feature</span><strong id="jiraFeatureField">-</strong></div>
+                <div class="field"><span>Approval</span><strong id="jiraApprovalField">No update requested</strong></div>
+              </div>
+            </div>
+            <div class="section">
+              <h2>Editable Jira Fields</h2>
+              <div class="timeline" id="jiraFieldCards">
+                <div class="timeline-item jira-accent"><span class="step-no">D</span><div><h3>Description</h3><p>Business-readable scope and impacted areas.</p></div><span class="tag ok-accent">Clean</span></div>
+                <div class="timeline-item jira-accent"><span class="step-no">A</span><div><h3>Acceptance Criteria</h3><p>Separate AC field, not duplicated inside description.</p></div><span class="tag warn-accent">Review</span></div>
+                <div class="timeline-item jira-accent"><span class="step-no">R</span><div><h3>Regulatory Justification</h3><p>Traceability and validation statement.</p></div><span class="tag ok-accent">Clean</span></div>
+                <div class="timeline-item jira-accent"><span class="step-no">S</span><div><h3>Subtasks</h3><p>Create one subtask or update the existing one.</p></div><span class="tag warn-accent">Approval</span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="gitlab">
+          <div class="summary-grid">
+            <div class="metric gitlab-accent"><span>Open MRs</span><strong>2</strong><em>1 needs reviewer</em></div>
+            <div class="metric ok-accent"><span>Pipeline</span><strong>Passed</strong><em>Latest branch green</em></div>
+            <div class="metric warn-accent"><span>Review SLA</span><strong>18h</strong><em>Average wait time</em></div>
+            <div class="metric jira-accent"><span>Linked stories</span><strong>5</strong><em>Mapped to feature</em></div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Merge Request</th><th>Branch</th><th>Status</th><th>Pipeline</th><th>Owner</th></tr></thead>
+              <tbody id="gitlabEvidenceRows">
+                <tr><td>No story selected</td><td>Ask for a GitLab report with a Jira key</td><td><span class="tag warn-accent">Waiting</span></td><td><span class="tag warn-accent">Unknown</span></td><td>-</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="view" id="epic">
+          <div class="section">
+            <h2>Feature and Epic Progress</h2>
+            <p id="epicSummaryText">Ask about a Jira story or epic to load feature progress.</p>
+            <div style="margin-top:14px" class="progress-bar" aria-label="Epic progress"><i id="epicProgressBar" style="--value:0%"></i></div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Work Item</th><th>Purpose</th><th>Status</th><th>Delivery Signal</th></tr></thead>
+              <tbody id="epicWorkRows">
+                <tr><td>No story selected</td><td>Ask for feature or epic progress</td><td><span class="tag warn-accent">Waiting</span></td><td>-</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="view" id="reports">
+          <div class="report-grid" id="reportCards">
+            <div class="report-card gitlab-accent">
+              <h3>MR Throughput</h3>
+              <p>Tracks how many merge requests were opened, reviewed, and merged for the feature.</p>
+              <div class="chart" aria-hidden="true">
+                <span class="bar" style="--accent:var(--gitlab);--h:42%"></span>
+                <span class="bar" style="--accent:var(--gitlab);--h:70%"></span>
+                <span class="bar" style="--accent:var(--gitlab);--h:54%"></span>
+                <span class="bar" style="--accent:var(--gitlab);--h:86%"></span>
+                <span class="bar" style="--accent:var(--gitlab);--h:62%"></span>
+                <span class="bar" style="--accent:var(--gitlab);--h:78%"></span>
+              </div>
+            </div>
+            <div class="report-card ok-accent">
+              <h3>Quality Evidence</h3>
+              <p>Summarizes pipeline pass rate, unit test evidence, review status, and missing validation.</p>
+              <div class="chart" aria-hidden="true">
+                <span class="bar" style="--accent:var(--ok);--h:78%"></span>
+                <span class="bar" style="--accent:var(--ok);--h:84%"></span>
+                <span class="bar" style="--accent:var(--ok);--h:72%"></span>
+                <span class="bar" style="--accent:var(--ok);--h:90%"></span>
+                <span class="bar" style="--accent:var(--ok);--h:88%"></span>
+                <span class="bar" style="--accent:var(--ok);--h:92%"></span>
+              </div>
+            </div>
+            <div class="report-card warn-accent">
+              <h3>PO/SM Attention</h3>
+              <p>Highlights stories with unclear AC, missing estimates, blocked subtasks, or stale MRs.</p>
+              <div class="chart" aria-hidden="true">
+                <span class="bar" style="--accent:var(--warn);--h:34%"></span>
+                <span class="bar" style="--accent:var(--warn);--h:48%"></span>
+                <span class="bar" style="--accent:var(--warn);--h:30%"></span>
+                <span class="bar" style="--accent:var(--warn);--h:58%"></span>
+                <span class="bar" style="--accent:var(--warn);--h:44%"></span>
+                <span class="bar" style="--accent:var(--warn);--h:26%"></span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const form = document.querySelector("#chatForm");
+    const input = document.querySelector("#commandInput");
+    const messages = document.querySelector("#messages");
+    const activeRequest = document.querySelector("#activeRequest");
+    const tabs = document.querySelectorAll(".tab");
+    const views = document.querySelectorAll(".view");
+
+    const liveSummary = document.querySelector("#liveSummary");
+    const liveJson = document.querySelector("#liveJson");
+    const liveCards = document.querySelector("#liveCards");
+    const metricStory = document.querySelector("#metricStory");
+    const metricStoryNote = document.querySelector("#metricStoryNote");
+    const metricGitLab = document.querySelector("#metricGitLab");
+    const metricGitLabNote = document.querySelector("#metricGitLabNote");
+    const metricProgress = document.querySelector("#metricProgress");
+    const metricProgressNote = document.querySelector("#metricProgressNote");
+    const metricAction = document.querySelector("#metricAction");
+    const metricActionNote = document.querySelector("#metricActionNote");
+    const requestFlowList = document.querySelector("#requestFlowList");
+    const poSmActionsList = document.querySelector("#poSmActionsList");
+    const jiraStoryField = document.querySelector("#jiraStoryField");
+    const jiraTitleField = document.querySelector("#jiraTitleField");
+    const jiraStatusField = document.querySelector("#jiraStatusField");
+    const jiraOwnerField = document.querySelector("#jiraOwnerField");
+    const jiraFeatureField = document.querySelector("#jiraFeatureField");
+    const jiraApprovalField = document.querySelector("#jiraApprovalField");
+    const jiraFieldCards = document.querySelector("#jiraFieldCards");
+    const gitlabEvidenceRows = document.querySelector("#gitlabEvidenceRows");
+    const epicSummaryText = document.querySelector("#epicSummaryText");
+    const epicProgressBar = document.querySelector("#epicProgressBar");
+    const epicWorkRows = document.querySelector("#epicWorkRows");
+    const reportCards = document.querySelector("#reportCards");
+    let lastStoryKey = "";
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function addMessage(type, text) {
+      const node = document.createElement("div");
+      node.className = `message ${type}`;
+      node.textContent = text;
+      messages.appendChild(node);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function setView(viewName) {
+      tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.view === viewName));
+      views.forEach((view) => view.classList.toggle("active", view.id === viewName));
+      activeRequest.textContent = `${viewName.charAt(0).toUpperCase()}${viewName.slice(1)} view`;
+    }
+
+    function updateMetrics(result) {
+      const display = result.display || {};
+      const story = result.story || result.proposal?.current || {};
+      const summary = result.summary || {};
+      const feature = result.feature_context || result.proposal?.feature_context || {};
+      const gitlab = result.connection || {};
+
+      if (display.story_key || story.key || summary.jira_story) {
+        metricStory.textContent = display.story_key || story.key || summary.jira_story;
+        metricStoryNote.textContent = display.story_status || story.status || summary.story_status || "Loaded from Jira";
+      }
+      if (display.epic_cards?.[1]?.value) {
+        metricProgress.textContent = display.epic_cards[1].value;
+        metricProgressNote.textContent = display.epic_cards[1].note || "Feature/Epic progress";
+      } else if (summary.progress_percent !== undefined) {
+        metricProgress.textContent = `${summary.progress_percent}%`;
+        metricProgressNote.textContent = `${summary.completed_stories || 0} of ${summary.total_stories || 0} stories complete`;
+      } else if (feature.completed_count !== undefined) {
+        metricProgress.textContent = `${Math.round(((feature.completed_count || 0) / Math.max(feature.total_sibling_count || 1, 1)) * 100)}%`;
+        metricProgressNote.textContent = `${feature.completed_count || 0} of ${feature.total_sibling_count || 0} stories complete`;
+      }
+      if (display.gitlab_cards?.[0]) {
+        metricGitLab.textContent = display.gitlab_cards[0].value;
+        metricGitLabNote.textContent = display.gitlab_cards[0].note;
+      } else if (result.merge_request || gitlab.project_name || result.local_git) {
+        metricGitLab.textContent = result.merge_request ? `!${result.merge_request.iid || result.merge_request.id}` : "Connected";
+        metricGitLabNote.textContent = result.merge_request?.state || gitlab.project_name || "Local Git status loaded";
+      }
+      if (display.report_cards?.[2]) {
+        metricAction.textContent = display.report_cards[2].value;
+        metricActionNote.textContent = display.report_cards[2].note;
+      } else if (result.approval_required) {
+        metricAction.textContent = "1";
+        metricActionNote.textContent = "Approval required before Jira update";
+      } else if (result.error) {
+        metricAction.textContent = "!";
+        metricActionNote.textContent = result.error_type || "Action failed";
+      }
+    }
+
+    function card(label, value, note = "") {
+      return `<div class="live-card"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value || "-")}</strong><em>${escapeHtml(note || "")}</em></div>`;
+    }
+
+    function renderLiveCards(result) {
+      if (result.display) {
+        const cards = [
+          ...(result.display.jira_cards || []),
+          ...(result.display.gitlab_cards || []),
+          ...(result.display.epic_cards || []),
+        ];
+        liveCards.innerHTML = cards.length
+          ? cards.map((item) => card(item.label, item.value, item.note)).join("")
+          : card("Result", "Ready", result.message || "Command completed");
+        return;
+      }
+      const story = result.story || result.proposal?.current || {};
+      const summary = result.summary || {};
+      const feature = result.feature_context || result.proposal?.feature_context || {};
+      const featureInfo = feature.feature || {};
+      const mr = result.merge_request || {};
+      const localGit = result.local_git || {};
+      const cards = [];
+
+      if (story.key || summary.jira_story) {
+        cards.push(card("Jira Story", story.key || summary.jira_story, story.summary || "Loaded from Jira"));
+        cards.push(card("Status", story.status || summary.story_status, story.assignee || summary.assignee || ""));
+        cards.push(card("Subtasks", summary.total_subtasks ?? summary.subtasks ?? (story.subtasks || []).length, "Current Jira subtask count"));
+      }
+      if (featureInfo.key || summary.feature) {
+        cards.push(card("Feature / Epic", featureInfo.key || summary.feature, featureInfo.name || summary.feature_name || ""));
+        cards.push(card("Progress", `${summary.progress_percent ?? 0}%`, `${summary.completed_stories || 0} of ${summary.total_stories || 0} stories complete`));
+      }
+      if (mr.iid || result.connection || localGit.branch) {
+        cards.push(card("GitLab", mr.iid ? `!${mr.iid}` : "Project status", mr.title || result.connection?.project_name || ""));
+        cards.push(card("Pipeline", result.pipeline?.head_pipeline?.status || mr.head_pipeline?.status || "Not selected", "Latest available signal"));
+        cards.push(card("Local Branch", localGit.branch || "-", `${localGit.changed_files ?? 0} changed file(s)`));
+      }
+      if (result.approval_required) {
+        cards.push(card("Approval Gate", "Required", "No Jira update was applied"));
+      }
+      if (result.error) {
+        cards.push(card("Error", result.error_type || "Failed", result.message || ""));
+      }
+
+      liveCards.innerHTML = cards.length ? cards.join("") : card("Result", "Ready", result.message || "Command completed");
+    }
+
+    function renderRequestFlow(display) {
+      const items = display?.request_flow || [];
+      if (!items.length) return;
+      requestFlowList.innerHTML = items.map((item, index) => `
+        <div class="timeline-item ${index === 1 ? "ok-accent" : index === 2 ? "gitlab-accent" : index === 3 ? "warn-accent" : "jira-accent"}">
+          <span class="step-no">${index + 1}</span>
+          <div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.detail)}</p></div>
+          <span class="tag ${index === 2 ? "gitlab-accent" : index === 3 ? "warn-accent" : "jira-accent"}">${escapeHtml(item.tag)}</span>
+        </div>
+      `).join("");
+    }
+
+    function renderActions(display) {
+      const actions = display?.actions || [];
+      if (!actions.length) return;
+      poSmActionsList.innerHTML = actions.map((item) => `
+        <div class="field"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(item.value)}</strong></div>
+      `).join("");
+    }
+
+    function renderJiraView(display, result) {
+      if (!display) return;
+      const summary = display.jira_summary || {};
+      /* Pull extra fallback data from top-level result (story + analysis are included by command_read_story) */
+      const storyData = (result && (result.story || (result.proposal && result.proposal.current))) || {};
+      const analysis  = (result && result.analysis) || {};
+      const feature   = display.epic_cards && display.epic_cards[0];
+
+      const resolvedKey    = summary.key    || display.story_key    || storyData.key    || "-";
+      const resolvedTitle  = summary.title  || display.story_title  || storyData.summary || analysis.current_summary || "-";
+      const resolvedStatus = summary.status || display.story_status || storyData.status  || "-";
+      const resolvedOwner  = summary.owner  || display.assignee     || storyData.assignee || "-";
+
+      /* Update the section heading so the user sees which story was loaded */
+      const jiraSectionHeading = document.querySelector("#jira .section h2");
+      if (jiraSectionHeading) {
+        jiraSectionHeading.textContent = resolvedKey !== "-"
+          ? `Jira Story Summary — ${resolvedKey}`
+          : "Jira Story Summary";
+      }
+      /* Inject an inline story-title banner if not already present.
+         IMPORTANT: use jiraSection.querySelector so the reference node is always
+         a direct child of jiraSection — document.querySelector(".field-list") would
+         return the first .field-list globally (#poSmActionsList in #overview) which
+         is NOT a child of jiraSection and would throw HierarchyRequestError,
+         silently aborting all subsequent textContent updates. */
+      try {
+        const jiraSection = document.querySelector("#jira .section");
+        let storyBanner = document.getElementById("jiraStoryBanner");
+        if (!storyBanner && jiraSection) {
+          storyBanner = document.createElement("p");
+          storyBanner.id = "jiraStoryBanner";
+          storyBanner.style.cssText = "margin:0 0 10px;font-size:13px;color:var(--jira);font-weight:700;line-height:1.4;word-break:break-word;";
+          const fieldListInSection = jiraSection.querySelector(".field-list");
+          jiraSection.insertBefore(storyBanner, fieldListInSection || null);
+        }
+        if (storyBanner) {
+          storyBanner.textContent = resolvedTitle !== "-" ? resolvedTitle : "";
+        }
+      } catch (bannerErr) {
+        console.warn("Jira story banner inject failed", bannerErr);
+      }
+
+      jiraStoryField.textContent    = resolvedKey;
+      jiraTitleField.textContent    = resolvedTitle;
+      jiraStatusField.textContent   = resolvedStatus;
+      jiraOwnerField.textContent    = resolvedOwner;
+      jiraFeatureField.textContent  = summary.feature && summary.feature !== "Not linked"
+        ? `${summary.feature}: ${summary.feature_name || ""}`
+        : feature
+          ? `${feature.value}: ${feature.note}`
+          : summary.feature || "Not linked";
+      jiraApprovalField.textContent = summary.approval
+        || (resolvedStatus.toLowerCase() === "done"
+          ? "No Jira update needed unless PO/SM requests correction"
+          : "Approval required before update");
+
+      const acCount       = (display.acceptance_criteria && display.acceptance_criteria.length) || 0;
+      const subtaskCount  = (display.subtask_counts && display.subtask_counts.total) || 0;
+      jiraFieldCards.innerHTML = [
+        ["D", "Description",              display.story_title || "Story description loaded",       "Loaded"],
+        ["A", "Acceptance Criteria",      `${acCount} acceptance criteria found`,                  acCount ? "Clean" : "Review"],
+        ["R", "Regulatory Justification", "Shown only if Jira field has value",                    "Check"],
+        ["S", "Subtasks",                 `${subtaskCount} subtasks linked to this story`,          "Loaded"],
+      ].map(([code, title, detail, tag]) => `
+        <div class="timeline-item jira-accent"><span class="step-no">${code}</span><div><h3>${escapeHtml(title)}</h3><p>${escapeHtml(detail)}</p></div><span class="tag ${tag === "Review" ? "warn-accent" : "ok-accent"}">${escapeHtml(tag)}</span></div>
+      `).join("");
+    }
+
+    function renderGitLabView(display) {
+      if (!display) return;
+      const mrs = display.gitlab_merge_requests || [];
+      const mrIds = display.linked_merge_requests || [];
+      const storyKey = display.story_key || "-";
+      const searchErr = display.gitlab_search_error || "";
+      gitlabEvidenceRows.innerHTML = mrs.length
+        ? mrs.map((mr) => `
+          <tr><td><a href="${escapeHtml(mr.web_url || "#")}" target="_blank" rel="noopener">!${escapeHtml(mr.iid)}</a></td><td>${escapeHtml(mr.title || storyKey)}</td><td><span class="tag ok-accent">${escapeHtml(mr.state || "Linked")}</span></td><td><span class="tag ${mr.head_pipeline?.status === "success" ? "ok-accent" : "warn-accent"}">${escapeHtml(mr.head_pipeline?.status || "Unknown")}</span></td><td>${escapeHtml(mr.author?.name || display.assignee || "-")}</td></tr>
+        `).join("")
+        : mrIds.length
+          ? mrIds.map((id) => `
+          <tr><td>!${id}</td><td>${escapeHtml(storyKey)} linked evidence from Jira</td><td><span class="tag ok-accent">Linked</span></td><td><span class="tag warn-accent">Open in GitLab</span></td><td>${escapeHtml(display.assignee || "-")}</td></tr>
+        `).join("")
+          : `<tr><td colspan="5" style="color:var(--muted);font-style:italic">${
+              searchErr
+                ? `GitLab search unavailable: ${escapeHtml(searchErr)}`
+                : `No merge requests found for ${escapeHtml(storyKey)}. Ask "GitLab evidence for ${escapeHtml(storyKey)}" to search GitLab.`
+            }</td></tr>`;
+    }
+
+    function renderEpicView(display) {
+      if (!display) return;
+      const epic = display.epic_cards?.[0] || {};
+      const progress = display.epic_cards?.[1] || {};
+      epicSummaryText.textContent = `Parent feature/epic: ${epic.value || "Not linked"}. ${epic.note || "No parent Feature/Epic found for this story."}`;
+      epicProgressBar.style.setProperty("--value", progress.value || "0%");
+      const rows = [
+        [display.story_key, display.story_title, display.story_status, "Current requested story"],
+        ...(display.subtasks || []).slice(0, 8).map((item) => [item.key, item.summary, item.status, "Subtask"]),
+      ];
+      epicWorkRows.innerHTML = rows.map(([key, purpose, status, signal]) => `
+        <tr><td>${escapeHtml(key || "-")}</td><td>${escapeHtml(purpose || "-")}</td><td><span class="tag ${status === "Done" ? "ok-accent" : status === "Cancelled" ? "warn-accent" : "jira-accent"}">${escapeHtml(status || "-")}</span></td><td>${escapeHtml(signal || "-")}</td></tr>
+      `).join("");
+    }
+
+    function renderReportsView(display) {
+      if (!display) return;
+      const cards = display.report_cards || [];
+      reportCards.innerHTML = cards.map((item, index) => `
+        <div class="report-card ${index === 0 ? "gitlab-accent" : index === 1 ? "ok-accent" : "warn-accent"}">
+          <h3>${escapeHtml(item.label)}</h3>
+          <p><strong>${escapeHtml(item.value)}</strong></p>
+          <p>${escapeHtml(item.note)}</p>
+        </div>
+      `).join("");
+    }
+
+    function renderScopedDisplay(result) {
+      const display = result.display;
+      if (!display) return;
+      try { renderJiraView(display, result); } catch (error) { console.warn("Jira view render failed", error); }
+      try { renderRequestFlow(display); } catch (error) { console.warn("Request flow render failed", error); }
+      try { renderActions(display); } catch (error) { console.warn("Actions render failed", error); }
+      try { renderGitLabView(display); } catch (error) { console.warn("GitLab render failed", error); }
+      try { renderEpicView(display); } catch (error) { console.warn("Epic render failed", error); }
+      try { renderReportsView(display); } catch (error) { console.warn("Reports render failed", error); }
+    }
+
+    function displayResult(payload) {
+      const result = payload.result || {};
+      const targetView = result.view || routeCommand(payload.command || "");
+      setView(targetView);
+      liveSummary.textContent = result.message || payload.message || "Automation command completed.";
+      liveJson.textContent = "";
+      renderScopedDisplay(result);
+      renderLiveCards(result);
+      updateMetrics(result);
+
+      /* Build the chat reply and add cross-tab hints so the user knows which tabs have data. */
+      let agentMessage = result.message || payload.message || "Command completed.";
+      const display = result.display || {};
+      const jiraKey = display.jira_summary?.key || display.story_key;
+
+      if (result.error) {
+        agentMessage = `⚠ ${agentMessage}`;
+      } else if (targetView === "gitlab" && jiraKey) {
+        /* Compound command: gitlab view is active but Jira story was also loaded */
+        agentMessage += ` Jira story ${jiraKey} details are loaded — click the Jira tab to view them.`;
+        if (result.mr_error) {
+          agentMessage += ` (GitLab MR detail could not be fetched: ${result.mr_error})`;
+        }
+      } else if (targetView === "jira" && jiraKey) {
+        const gitlabNote = display.gitlab_cards?.[0]?.note;
+        if (gitlabNote && gitlabNote !== "No MR found by Jira key") {
+          agentMessage += ` GitLab evidence: ${gitlabNote}. Switch to the GitLab tab for the full view.`;
+        } else {
+          agentMessage += ` Use the "GitLab report" quick-action or ask "GitLab evidence for ${jiraKey}" to load MR data.`;
+        }
+      }
+
+      addMessage(payload.ok ? "agent" : "agent", agentMessage);
+    }
+
+    function routeCommand(command) {
+      const lower = command.toLowerCase();
+      /* "evidence" covers "GitLab evidence" phrasing without needing "gitlab" explicitly */
+      if (lower.includes("gitlab") || lower.includes("evidence") || lower.includes("report")) return "gitlab";
+      if (lower.includes("epic") || lower.includes("feature") || lower.includes("progress")) return "epic";
+      if (lower.includes("subtask") || lower.includes("jira") || lower.includes("story")) return "jira";
+      /* Detect any Jira key pattern (e.g. BDRSP-1418) – covers "tell me about X", "what is X", etc. */
+      if (/\b[a-z][a-z0-9]+-\d+\b/.test(lower)) return "jira";
+      return "overview";
+    }
+
+    function commandStoryKey() {
+      const fromInput = input.value.match(/\b[A-Z][A-Z0-9]+-\d+\b/i)?.[0]?.toUpperCase();
+      return fromInput || lastStoryKey;
+    }
+
+    function quickCommand(action) {
+      const key = commandStoryKey();
+      if (!key) return "Please tell me about BDRSP-1418";
+      const commands = {
+        read: `Can you tell me about ${key}`,
+        update: `Update Jira story ${key}`,
+        subtasks: `Show subtask status for ${key}`,
+        "create-subtask": `Create one subtask for ${key}`,
+        epic: `Show feature and epic progress for ${key}`,
+        gitlab: `Show GitLab delivery report for ${key}`,
+      };
+      return commands[action] || `Can you tell me about ${key}`;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const command = input.value.trim();
+      if (!command) return;
+      const key = command.match(/\b[A-Z][A-Z0-9]+-\d+\b/i)?.[0]?.toUpperCase();
+      if (key) lastStoryKey = key;
+      addMessage("user", command);
+      input.value = "";
+      setView(routeCommand(command));
+      liveSummary.textContent = "Running Automation command...";
+      liveJson.textContent = "";
+      liveCards.innerHTML = card("Running", "Please wait", "Loading scoped Jira/GitLab display");
+      try {
+        const response = await fetch("/api/command", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ command }),
+        });
+        const payload = await response.json();
+        displayResult(payload);
+      } catch (error) {
+        const message = `Could not reach Automation UI server: ${error.message}`;
+        liveSummary.textContent = message;
+        liveJson.textContent = message;
+        addMessage("agent", message);
+      }
+    });
+
+    document.querySelectorAll(".command-chip").forEach((button) => {
+      button.addEventListener("click", () => {
+        input.value = quickCommand(button.dataset.action);
+        form.requestSubmit();
+      });
+    });
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => setView(tab.dataset.view));
+    });
+  </script>
+</body>
+</html>

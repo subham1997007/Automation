@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Automation MCP Profile Flows</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070a10;
+      --panel: rgba(14, 19, 29, 0.92);
+      --panel-2: rgba(18, 25, 37, 0.96);
+      --text: #f5f7fb;
+      --muted: #a8b6c6;
+      --line: rgba(168, 182, 198, 0.24);
+      --blue: #45adff;
+      --orange: #ff9f43;
+      --green: #39d98a;
+      --purple: #b786ff;
+      --red: #ff6f7d;
+      --yellow: #f5cc62;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.44);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px) 0 0 / 42px 42px,
+        linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px) 0 0 / 42px 42px,
+        radial-gradient(circle at 12% 10%, rgba(69,173,255,0.18), transparent 30%),
+        radial-gradient(circle at 84% 12%, rgba(183,134,255,0.14), transparent 30%),
+        radial-gradient(circle at 72% 88%, rgba(57,217,138,0.12), transparent 34%),
+        var(--bg);
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .page {
+      width: min(1520px, calc(100vw - 36px));
+      margin: 0 auto;
+      padding: 30px 0 44px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      color: #8bd7ff;
+      border: 1px solid rgba(139, 215, 255, 0.28);
+      background: rgba(11, 16, 24, 0.82);
+      padding: 7px 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    h1 {
+      margin: 16px 0 8px;
+      font-size: clamp(36px, 4.7vw, 66px);
+      line-height: 0.98;
+      letter-spacing: 0;
+    }
+
+    h1 span {
+      color: var(--blue);
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.55;
+      max-width: 1120px;
+    }
+
+    .subtitle strong {
+      color: var(--yellow);
+    }
+
+    .shell {
+      margin-top: 26px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px) 0 0 / 38px 38px,
+        linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px) 0 0 / 38px 38px,
+        rgba(7, 11, 18, 0.84);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .tab {
+      border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--line));
+      background: rgba(14, 19, 29, 0.9);
+      color: var(--muted);
+      min-height: 74px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(24, 32, 47, 0.96), rgba(12, 17, 26, 0.96));
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 42%, transparent);
+    }
+
+    .tab strong {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 3px;
+    }
+
+    .tab span:last-child {
+      display: block;
+      font-size: 12px;
+      line-height: 1.3;
+    }
+
+    .logo {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      color: var(--accent);
+      background: #070b12;
+      border: 1px solid color-mix(in srgb, var(--accent) 66%, transparent);
+      flex: 0 0 auto;
+    }
+
+    .logo svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.9;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .panel {
+      display: none;
+      border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--line));
+      background: linear-gradient(180deg, rgba(18, 25, 37, 0.92), rgba(9, 13, 21, 0.92));
+      min-height: 640px;
+      padding: 22px;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    .panel-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+      gap: 18px;
+      align-items: start;
+      margin-bottom: 24px;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .title-row .logo {
+      width: 54px;
+      height: 54px;
+    }
+
+    .title-row .logo svg {
+      width: 30px;
+      height: 30px;
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: clamp(26px, 3vw, 42px);
+      line-height: 1.04;
+      letter-spacing: 0;
+    }
+
+    .panel .intro {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.55;
+      max-width: 780px;
+    }
+
+    .command-card {
+      border: 1px solid rgba(245, 204, 98, 0.28);
+      background: rgba(245, 204, 98, 0.08);
+      padding: 14px;
+    }
+
+    .command-card strong {
+      display: block;
+      color: var(--yellow);
+      margin-bottom: 9px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    code {
+      display: block;
+      color: #ffe9b4;
+      background: #070a10;
+      border: 1px solid rgba(245, 204, 98, 0.24);
+      padding: 10px 11px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .diagram {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 22px;
+      align-items: stretch;
+      margin-top: 14px;
+    }
+
+    .step {
+      position: relative;
+      min-height: 214px;
+      border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--line));
+      background: rgba(10, 15, 24, 0.9);
+      padding: 16px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+    }
+
+    .step::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 3px;
+      background: var(--accent);
+    }
+
+    .step:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 88px;
+      right: -25px;
+      width: 27px;
+      height: 2px;
+      background: repeating-linear-gradient(90deg, var(--accent), var(--accent) 6px, transparent 6px, transparent 12px);
+      animation: arrowRun 1.2s linear infinite;
+    }
+
+    .step:not(:last-child) .arrow-head {
+      position: absolute;
+      top: 83px;
+      right: -30px;
+      width: 0;
+      height: 0;
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-left: 9px solid var(--accent);
+      animation: pulse 1.2s linear infinite;
+    }
+
+    @keyframes arrowRun {
+      from { background-position: 0 0; }
+      to { background-position: 24px 0; }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.35; transform: translateX(-4px); }
+      50% { opacity: 1; transform: translateX(2px); }
+    }
+
+    .num {
+      position: absolute;
+      top: -12px;
+      right: 14px;
+      min-width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      color: var(--accent);
+      border: 1px solid color-mix(in srgb, var(--accent) 64%, transparent);
+      background: #070b12;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .step h3 {
+      margin: 12px 0 8px;
+      font-size: 17px;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    .step p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.48;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 13px;
+    }
+
+    .chip {
+      color: color-mix(in srgb, var(--accent) 78%, white);
+      border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+      padding: 4px 7px;
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    .tool-list {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .tool {
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+      background: rgba(7, 10, 16, 0.58);
+      padding: 10px;
+      color: #dce6ef;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .note {
+      margin-top: 18px;
+      border: 1px solid rgba(245, 204, 98, 0.28);
+      background: rgba(245, 204, 98, 0.08);
+      padding: 14px 16px;
+      color: #ead9a2;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .blue { --accent: var(--blue); }
+    .orange { --accent: var(--orange); }
+    .green { --accent: var(--green); }
+    .purple { --accent: var(--purple); }
+    .red { --accent: var(--red); }
+    .yellow { --accent: var(--yellow); }
+
+    @media (max-width: 1180px) {
+      .tabs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .panel-head {
+        grid-template-columns: 1fr;
+      }
+
+      .diagram,
+      .tool-list {
+        grid-template-columns: 1fr;
+      }
+
+      .step {
+        min-height: auto;
+      }
+
+      .step:not(:last-child)::after {
+        top: auto;
+        right: auto;
+        bottom: -22px;
+        left: 28px;
+        width: 2px;
+        height: 22px;
+        background: repeating-linear-gradient(180deg, var(--accent), var(--accent) 6px, transparent 6px, transparent 12px);
+      }
+
+      .step:not(:last-child) .arrow-head {
+        top: auto;
+        right: auto;
+        bottom: -30px;
+        left: 24px;
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-top: 9px solid var(--accent);
+        border-bottom: 0;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        width: min(100vw - 20px, 1520px);
+        padding-top: 14px;
+      }
+
+      .shell,
+      .panel {
+        padding: 14px;
+      }
+
+      .tabs {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 38px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="eyebrow">Automation Folder MCP Enablement</div>
+    <h1>Install Once, Open a Tab, Use the <span>MCP Tools</span></h1>
+    <p class="subtitle">
+      This demo page is for non-technical users. Each tab shows one simple flow with logo-style icons,
+      dotted moving arrows, the command to enable that profile, and the tools/result users can expect.
+      <strong>Only one profile is active at a time.</strong>
+    </p>
+
+    <section class="shell">
+      <nav class="tabs" aria-label="Flow tabs">
+        <button class="tab active blue" type="button" data-tab="install">
+          <span class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 4h7v7H4z"></path><path d="M13 4h7v7h-7z"></path><path d="M4 13h7v7H4z"></path><path d="M13 13h7v7h-7z"></path></svg>
+          </span>
+          <span><strong>Install</strong>Start using Automation</span>
+        </button>
+        <button class="tab blue" type="button" data-tab="jira">
+          <span class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M8 4h10v10"></path><path d="M6 10l8-8"></path><path d="M6 8v12h12v-4"></path></svg>
+          </span>
+          <span><strong>Jira</strong>Story readiness</span>
+        </button>
+        <button class="tab orange" type="button" data-tab="gitlab">
+          <span class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M6 4l3 7h6l3-7 3 10-9 6-9-6 3-10z"></path></svg>
+          </span>
+          <span><strong>GitLab</strong>Branch and MR</span>
+        </button>
+        <button class="tab green" type="button" data-tab="test">
+          <span class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M9 3h6"></path><path d="M10 3v6l-5 8a3 3 0 0 0 3 4h8a3 3 0 0 0 3-4l-5-8V3"></path><path d="M8 15h8"></path></svg>
+          </span>
+          <span><strong>Test</strong>Evidence</span>
+        </button>
+        <button class="tab purple" type="button" data-tab="review">
+          <span class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path><path d="M4 20h16"></path></svg>
+          </span>
+          <span><strong>Review</strong>Risk check</span>
+        </button>
+        <button class="tab red" type="button" data-tab="dev">
+          <span class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 3v18"></path><path d="M5 8h14"></path><path d="M7 16h10"></path><path d="M4 12h16"></path></svg>
+          </span>
+          <span><strong>Dev</strong>End-to-end</span>
+        </button>
+      </nav>
+
+      <section class="panel active blue" data-panel="install">
+        <div class="panel-head">
+          <div>
+            <div class="title-row">
+              <span class="logo" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M4 4h7v7H4z"></path><path d="M13 4h7v7h-7z"></path><path d="M4 13h7v7H4z"></path><path d="M13 13h7v7h-7z"></path></svg>
+              </span>
+              <h2>Install Flow</h2>
+            </div>
+            <p class="intro">This is the common flow for every project. The team copies the Automation folder, selects one profile, restarts the IDE, and then asks Copilot or Windsurf normally.</p>
+          </div>
+          <div class="command-card">
+            <strong>Profile commands</strong>
+            <code>./Automation/setup_copilot_mcp.sh jira</code>
+            <code>./Automation/setup_copilot_mcp.sh gitlab</code>
+            <code>./Automation/setup_copilot_mcp.sh test</code>
+            <code>./Automation/setup_copilot_mcp.sh review</code>
+            <code>./Automation/setup_copilot_mcp.sh dev</code>
+          </div>
+        </div>
+        <div class="diagram">
+          <article class="step"><span class="num">1</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 4h7v7H4z"></path><path d="M13 4h7v7h-7z"></path><path d="M4 13h7v7H4z"></path><path d="M13 13h7v7h-7z"></path></svg></span><h3>Copy Folder</h3><p>Place the portable <strong>Automation/</strong> folder inside the project repository.</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">2</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"></path><path d="M9 12l2 2 4-5"></path></svg></span><h3>Add Local Config</h3><p>Put private credentials and project values in <strong>Automation/.env.local</strong>.</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">3</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 17l6-6-6-6"></path><path d="M12 19h8"></path></svg></span><h3>Run Profile</h3><p>The setup command installs dependencies and writes MCP config for the chosen profile.</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">4</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 3v6h-6"></path></svg></span><h3>Restart IDE</h3><p>Copilot/Windsurf reloads the MCP configuration and sees only selected tools.</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">5</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></span><h3>Ask Normally</h3><p>The IDE starts the selected MCP server on demand and calls its tools.</p></article>
+        </div>
+        <div class="note">Simple message for stakeholders: install the folder once, choose one profile command, restart the IDE, and use the assistant normally.</div>
+      </section>
+
+      <section class="panel blue" data-panel="jira">
+        <div class="panel-head">
+          <div>
+            <div class="title-row"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 4h10v10"></path><path d="M6 10l8-8"></path><path d="M6 8v12h12v-4"></path></svg></span><h2>Jira Flow</h2></div>
+            <p class="intro">Use this profile when the team wants to read, prepare, or update Jira stories in a controlled way.</p>
+          </div>
+          <div class="command-card"><strong>Enable Jira tools</strong><code>./Automation/setup_copilot_mcp.sh jira</code></div>
+        </div>
+        <div class="diagram">
+          <article class="step"><span class="num">1</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 17l6-6-6-6"></path><path d="M12 19h8"></path></svg></span><h3>Enable Jira Profile</h3><p>Only <strong>jira-mcp</strong> tools are exposed in the IDE.</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">2</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></span><h3>User Asks</h3><p>Example: “Read or update Jira story BDRSP-1413.”</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">3</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 4h10v10"></path><path d="M6 10l8-8"></path><path d="M6 8v12h12v-4"></path></svg></span><h3>Read Full Jira</h3><p>Reads title, description, acceptance criteria, regulatory field, comments, subtasks, linked work, and feature context.</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">4</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"></path><path d="M9 12l2 2 4-5"></path></svg></span><h3>Approval Gate</h3><p>If update is needed, the user sees planned changes before Jira is modified.</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">5</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path><path d="M4 20h16"></path></svg></span><h3>Story Ready</h3><p>Jira is clean, separated by fields, and ready for implementation.</p></article>
+        </div>
+        <div class="tool-list"><div class="tool">jira_read_story</div><div class="tool">jira_feature_context</div><div class="tool">jira_analyze_story</div><div class="tool">jira_refine_story</div><div class="tool">jira_manage_subtasks</div><div class="tool">jira_check_connection</div></div>
+      </section>
+
+      <section class="panel orange" data-panel="gitlab">
+        <div class="panel-head">
+          <div>
+            <div class="title-row"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 4l3 7h6l3-7 3 10-9 6-9-6 3-10z"></path></svg></span><h2>GitLab Flow</h2></div>
+            <p class="intro">Use this profile when the team wants branch safety, MR preparation, MR reading, and controlled GitLab actions.</p>
+          </div>
+          <div class="command-card"><strong>Enable GitLab tools</strong><code>./Automation/setup_copilot_mcp.sh gitlab</code></div>
+        </div>
+        <div class="diagram">
+          <article class="step"><span class="num">1</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 17l6-6-6-6"></path><path d="M12 19h8"></path></svg></span><h3>Enable GitLab Profile</h3><p>Only <strong>gitlab-mcp</strong> tools are exposed in the IDE.</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">2</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></span><h3>User Asks</h3><p>Example: “Create branch” or “Prepare merge request.”</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">3</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 4l3 7h6l3-7 3 10-9 6-9-6 3-10z"></path></svg></span><h3>Check Repository</h3><p>Checks branch name, working tree, target branch, GitLab access, and MR template.</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">4</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"></path><path d="M9 12l2 2 4-5"></path></svg></span><h3>Approval Gate</h3><p>Push or MR creation happens only after explicit user approval.</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">5</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path><path d="M4 20h16"></path></svg></span><h3>GitLab Ready</h3><p>Branch or MR information is prepared safely and consistently.</p></article>
+        </div>
+        <div class="tool-list"><div class="tool">gitlab_create_branch</div><div class="tool">gitlab_prepare_merge_request</div><div class="tool">gitlab_create_merge_request</div><div class="tool">gitlab_get_merge_request</div><div class="tool">gitlab_get_pipeline_status</div><div class="tool">gitlab_push_branch</div></div>
+      </section>
+
+      <section class="panel green" data-panel="test">
+        <div class="panel-head">
+          <div>
+            <div class="title-row"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 3h6"></path><path d="M10 3v6l-5 8a3 3 0 0 0 3 4h8a3 3 0 0 0 3-4l-5-8V3"></path><path d="M8 15h8"></path></svg></span><h2>Test Flow</h2></div>
+            <p class="intro">Use this profile when the team wants the assistant to discover and run the right validation commands.</p>
+          </div>
+          <div class="command-card"><strong>Enable Test tools</strong><code>./Automation/setup_copilot_mcp.sh test</code></div>
+        </div>
+        <div class="diagram">
+          <article class="step"><span class="num">1</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 17l6-6-6-6"></path><path d="M12 19h8"></path></svg></span><h3>Enable Test Profile</h3><p>Only <strong>test-mcp</strong> tools are exposed in the IDE.</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">2</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></span><h3>User Asks</h3><p>Example: “Run tests” or “Find the right test command.”</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">3</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 3h6"></path><path d="M10 3v6l-5 8a3 3 0 0 0 3 4h8a3 3 0 0 0 3-4l-5-8V3"></path><path d="M8 15h8"></path></svg></span><h3>Detect Tests</h3><p>Detects project type, test framework, build file, and available test commands.</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">4</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h10"></path></svg></span><h3>Run and Read</h3><p>Runs selected tests and reads output, reports, and failure details.</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">5</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path><path d="M4 20h16"></path></svg></span><h3>Evidence Ready</h3><p>Summarizes pass/fail status and evidence for MR or review notes.</p></article>
+        </div>
+        <div class="tool-list"><div class="tool">test_detect_project_type</div><div class="tool">test_discover_test_commands</div><div class="tool">test_run_unit_tests</div><div class="tool">test_run_integration_tests</div><div class="tool">test_analyze_failures</div><div class="tool">test_generate_test_summary</div></div>
+      </section>
+
+      <section class="panel purple" data-panel="review">
+        <div class="panel-head">
+          <div>
+            <div class="title-row"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path><path d="M4 20h16"></path></svg></span><h2>Review Flow</h2></div>
+            <p class="intro">Use this profile when the team wants to inspect current code changes before MR or human review.</p>
+          </div>
+          <div class="command-card"><strong>Enable Review tools</strong><code>./Automation/setup_copilot_mcp.sh review</code></div>
+        </div>
+        <div class="diagram">
+          <article class="step"><span class="num">1</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 17l6-6-6-6"></path><path d="M12 19h8"></path></svg></span><h3>Enable Review Profile</h3><p>Only <strong>review-mcp</strong> tools are exposed in the IDE.</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">2</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></span><h3>User Asks</h3><p>Example: “Review my changes for this story.”</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">3</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h10"></path></svg></span><h3>Inspect Changes</h3><p>Reads changed files, diff stats, touched modules, and likely impact areas.</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">4</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"></path><path d="M9 12l2 2 4-5"></path></svg></span><h3>Check Coverage</h3><p>Compares code changes with acceptance criteria, risks, and missing tests.</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">5</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path><path d="M4 20h16"></path></svg></span><h3>Review Summary</h3><p>Gives findings, risk level, AC coverage, and recommended next steps.</p></article>
+        </div>
+        <div class="tool-list"><div class="tool">review_analyze_current_changes</div><div class="tool">review_check_acceptance_criteria_coverage</div><div class="tool">review_suggest_improvements</div><div class="tool">review_generate_change_summary</div><div class="tool">review_full_current_changes</div><div class="tool">review_inspect_story_implementation</div></div>
+      </section>
+
+      <section class="panel red" data-panel="dev">
+        <div class="panel-head">
+          <div>
+            <div class="title-row"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v18"></path><path d="M5 8h14"></path><path d="M7 16h10"></path><path d="M4 12h16"></path></svg></span><h2>Dev Flow</h2></div>
+            <p class="intro">Use this profile for the end-to-end governed workflow. It exposes one controlled tool and internally coordinates Jira, GitLab, Test, and Review logic.</p>
+          </div>
+          <div class="command-card"><strong>Enable DevFlow tool</strong><code>./Automation/setup_copilot_mcp.sh dev</code></div>
+        </div>
+        <div class="diagram">
+          <article class="step"><span class="num">1</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 17l6-6-6-6"></path><path d="M12 19h8"></path></svg></span><h3>Enable Dev Profile</h3><p>Only <strong>dev_implement_story</strong> is exposed to keep the workflow controlled.</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">2</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></span><h3>User Asks</h3><p>Example: “Implement Jira story BDRSP-1413.”</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">3</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 4h10v10"></path><path d="M6 10l8-8"></path><path d="M6 8v12h12v-4"></path></svg></span><h3>Read and Analyze</h3><p>Reads Jira story, parent feature, related stories, and repository structure before action.</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">4</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"></path><path d="M9 12l2 2 4-5"></path></svg></span><h3>Approval Gates</h3><p>Story update approval comes first. Code changes start only after user approval.</p><span class="arrow-head"></span></article>
+          <article class="step"><span class="num">5</span><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path><path d="M4 20h16"></path></svg></span><h3>Delivery Evidence</h3><p>Coordinates code, tests, review, and MR preparation with evidence and final approval.</p></article>
+        </div>
+        <div class="tool-list"><div class="tool">dev_implement_story</div><div class="tool">Story readiness approval</div><div class="tool">Code-change approval</div><div class="tool">Test evidence</div><div class="tool">Review evidence</div><div class="tool">MR approval gate</div></div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const tabs = Array.from(document.querySelectorAll(".tab"));
+    const panels = Array.from(document.querySelectorAll(".panel"));
+
+    function showPanel(name) {
+      tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === name));
+      panels.forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === name));
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => showPanel(tab.dataset.tab));
+    });
+  </script>
+</body>
+</html>

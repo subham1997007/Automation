@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>DevFlow Analytics — cdp-linking-middleware</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:#0d1117;color:#e6edf3;min-height:100vh;}
+
+  /* ── Top header ── */
+  .top-bar{background:#010409;border-bottom:1px solid #21262d;padding:10px 32px;
+    display:flex;align-items:center;justify-content:space-between;}
+  .top-bar .pill{background:#21262d;border:1px solid #30363d;border-radius:20px;
+    padding:4px 12px;font-size:.75rem;color:#8b949e;letter-spacing:.06em;}
+  .top-bar .live-dot{width:8px;height:8px;background:#3fb950;border-radius:50%;
+    display:inline-block;margin-right:6px;animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+  /* ── Hero ── */
+  .hero{text-align:center;padding:48px 32px 32px;}
+  .hero h1{font-size:2.4rem;font-weight:700;letter-spacing:-.02em;}
+  .hero h1 span{background:linear-gradient(135deg,#58a6ff,#a371f7);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  .hero .subtitle{color:#8b949e;margin-top:8px;font-size:.95rem;}
+
+  /* ── Stats ── */
+  .stats-row{display:flex;gap:16px;padding:0 32px 32px;flex-wrap:wrap;justify-content:center;}
+  .stat-card{background:#161b22;border:1px solid #30363d;border-radius:10px;
+    padding:20px 28px;flex:1;min-width:140px;max-width:200px;text-align:center;
+    transition:border-color .2s;cursor:default;}
+  .stat-card:hover{border-color:#58a6ff;}
+  .stat-val{font-size:2rem;font-weight:700;line-height:1;}
+  .stat-lbl{font-size:.7rem;color:#8b949e;margin-top:6px;letter-spacing:.08em;}
+
+  /* ── Table ── */
+  .table-wrap{padding:0 32px 40px;overflow-x:auto;}
+  .section-title{color:#8b949e;font-size:.8rem;letter-spacing:.08em;
+    margin-bottom:12px;text-transform:uppercase;}
+  table{width:100%;border-collapse:collapse;font-size:.88rem;min-width:900px;}
+  thead tr{background:#161b22;}
+  th{padding:12px 14px;text-align:left;color:#8b949e;font-weight:500;
+    font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;
+    border-bottom:1px solid #21262d;white-space:nowrap;}
+  td{padding:12px 14px;border-bottom:1px solid #161b22;vertical-align:middle;}
+  .story-row{transition:background .15s;cursor:pointer;}
+  .story-row:hover td{background:#1c2128 !important;}
+  .story-link{color:#58a6ff;text-decoration:none;font-weight:600;font-size:.9rem;}
+  .story-link:hover{text-decoration:underline;}
+
+  /* ── Badges ── */
+  .proj-badge{background:#1f2937;color:#79c0ff;border:1px solid #30363d;
+    padding:2px 10px;border-radius:6px;font-size:.78rem;font-weight:600;}
+  .agent-badge{padding:2px 10px;border-radius:12px;font-size:.78rem;font-weight:600;}
+  .agent-devflow{background:#1a2a4a;color:#58a6ff;border:1px solid #1f6feb;}
+  .agent-manual{background:#2a1a1a;color:#f85149;border:1px solid #6e2b2b;}
+
+  /* ── Tree view ── */
+  .tree-section{padding:0 32px 40px;}
+  .tree-tabs{display:flex;gap:0;margin-bottom:0;border-bottom:1px solid #30363d;}
+  .tab-btn{padding:8px 20px;background:none;border:none;color:#8b949e;cursor:pointer;
+    font-size:.88rem;border-bottom:2px solid transparent;transition:all .15s;}
+  .tab-btn.active{color:#e6edf3;border-bottom-color:#58a6ff;}
+  .tab-btn:hover{color:#e6edf3;}
+  .tab-content{display:none;padding-top:20px;}
+  .tab-content.active{display:block;}
+
+  .feature-node{margin-bottom:12px;border:1px solid #21262d;border-radius:8px;
+    overflow:hidden;}
+  .feature-header{display:flex;align-items:center;gap:10px;padding:12px 16px;
+    background:#161b22;cursor:pointer;flex-wrap:wrap;transition:background .15s;}
+  .feature-header:hover{background:#1c2128;}
+  .tree-toggle{color:#8b949e;font-size:.8rem;transition:transform .2s;min-width:14px;}
+  .feature-type-pill{background:#2d1b69;color:#a371f7;border:1px solid #8957e5;
+    padding:1px 8px;border-radius:10px;font-size:.72rem;font-weight:600;white-space:nowrap;}
+  .feature-key{color:#a371f7;font-weight:700;font-size:.92rem;text-decoration:none;white-space:nowrap;}
+  .feature-key:hover{text-decoration:underline;}
+  .feature-name{color:#e6edf3;font-size:.88rem;flex:1;}
+  .feature-status{font-size:.82rem;white-space:nowrap;}
+  .feature-meta{color:#484f58;font-size:.75rem;white-space:nowrap;margin-left:auto;}
+
+  .feature-children{padding:0 0 8px 0;background:#0d1117;}
+  .tree-branch-line{width:2px;background:#21262d;margin:0 0 0 28px;height:8px;}
+  .siblings-container{padding:0 12px 4px 28px;}
+  .tree-section-label{color:#484f58;font-size:.72rem;letter-spacing:.08em;
+    text-transform:uppercase;padding:8px 4px 4px;}
+  .tree-sibling{display:flex;align-items:center;gap:8px;padding:6px 10px;
+    border-radius:6px;margin-bottom:2px;flex-wrap:wrap;cursor:pointer;
+    border-left:2px solid transparent;transition:all .12s;}
+  .tree-sibling:hover{background:#161b22;}
+  .story-node{border-left:2px solid transparent;border-radius:6px;margin-bottom:4px;}
+  .story-node.current-story{border-left-color:#388bfd;background:rgba(56,139,253,.07);}
+  .story-header{display:flex;align-items:center;gap:8px;padding:7px 10px;
+    border-radius:6px;cursor:pointer;transition:background .12s;}
+  .story-header:hover{background:#161b22;}
+  .story-children{margin-left:18px;padding:0 0 4px 10px;border-left:1px solid #21262d;}
+  .tree-key{color:#58a6ff;font-weight:600;font-size:.85rem;text-decoration:none;
+    white-space:nowrap;}
+  .tree-key:hover{text-decoration:underline;}
+  .tree-summary{color:#8b949e;font-size:.83rem;flex:1;}
+  .tree-meta{color:#484f58;font-size:.75rem;white-space:nowrap;margin-left:auto;}
+  .devflow-badge{background:#1a2a4a;color:#58a6ff;border:1px solid #1f6feb;
+    padding:1px 7px;border-radius:10px;font-size:.72rem;}
+
+  .story-detail-tree{margin:4px 0 8px 18px;background:#161b22;border:1px solid #21262d;
+    border-radius:6px;padding:10px 14px;}
+  .detail-grid{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;}
+  .detail-item{font-size:.8rem;color:#8b949e;}
+  .detail-item b{font-weight:600;}
+  .file-chip{display:inline-block;background:#21262d;color:#79c0ff;border-radius:4px;
+    padding:1px 6px;font-size:.72rem;margin:1px;}
+  .subtask-list{margin:8px 0;border-top:1px solid #21262d;padding-top:6px;}
+  .subtask-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:.8rem;}
+  .subtask-indent{color:#30363d;font-family:monospace;min-width:18px;}
+  .empty-subtasks{color:#6e7681;font-size:.78rem;}
+  /* ── Subtask tree nodes ── */
+  .subtasks-container{padding:2px 0 4px 16px;border-left:1px solid #21262d;margin-left:12px;margin-top:2px;}
+  .subtask-tree-node{display:flex;align-items:center;gap:7px;padding:3px 6px;
+    border-radius:5px;font-size:.8rem;transition:background .1s;}
+  .subtask-tree-node:hover{background:#161b22;}
+  .subtask-connector{color:#30363d;font-family:monospace;min-width:18px;font-size:.8rem;}
+  .subtask-key{color:#58a6ff;font-weight:600;font-size:.81rem;text-decoration:none;white-space:nowrap;}
+  .subtask-key:hover{text-decoration:underline;}
+  .subtask-summary{color:#8b949e;font-size:.79rem;flex:1;}
+  .stage-timeline{margin-top:8px;border-top:1px solid #21262d;padding-top:6px;}
+  .tree-stage{display:flex;align-items:center;padding:3px 0;font-size:.8rem;}
+  .tree-connector{color:#30363d;font-family:monospace;margin-right:6px;min-width:18px;}
+  .stage-label{color:#e6edf3;}
+
+  /* ── Footer ── */
+  .footer{text-align:center;padding:20px;color:#484f58;font-size:.8rem;
+    border-top:1px solid #21262d;}
+
+  /* ── Empty state ── */
+  .empty{text-align:center;padding:60px;color:#484f58;}
+  .empty .icon{font-size:3rem;margin-bottom:12px;}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div>
+    <span class="pill"><span class="live-dot"></span>ANALYTICS · REAL-TIME TRACKING</span>
+  </div>
+  <div style="color:#484f58;font-size:.8rem;">Generated: 2026-06-07 01:29</div>
+</div>
+
+<div class="hero">
+  <h1>DevFlow <span>Analytics</span></h1>
+  <div class="subtitle">Jira &nbsp;→&nbsp; DevFlow &nbsp;→&nbsp; GitLab Integration Analytics &nbsp;|&nbsp; cdp-linking-middleware</div>
+  <div style="color:#484f58;font-size:.8rem;margin-top:4px;">Spring Boot (Maven)</div>
+</div>
+
+<div class="stats-row">
+  
+        <div class="stat-card">
+          <div class="stat-val" style="color:#e6edf3;">2</div>
+          <div class="stat-lbl">TOTAL STORIES</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" style="color:#58a6ff;">0</div>
+          <div class="stat-lbl">DEVFLOW STORIES</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" style="color:#d29922;">2</div>
+          <div class="stat-lbl">IN PROGRESS</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" style="color:#3fb950;">0</div>
+          <div class="stat-lbl">PR CREATED</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" style="color:#a371f7;">0m</div>
+          <div class="stat-lbl">TOTAL AI TIME</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" style="color:#79c0ff;">—</div>
+          <div class="stat-lbl">AVG PER STORY</div>
+        </div>
+</div>
+
+<div style="padding:0 32px;">
+  <div class="tree-tabs">
+    <button class="tab-btn active" id="tab-btn-table" onclick="switchTab('table')">📋 Table View</button>
+    <button class="tab-btn" id="tab-btn-tree" onclick="switchTab('tree')">🌳 Feature Tree</button>
+  </div>
+</div>
+
+<div id="tab-table" class="tab-content active">
+<div class="table-wrap">
+  <div class="section-title">Story Implementation Records</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Ticket No.</th>
+        <th>Project</th>
+        <th>Feature</th>
+        <th>Agent Used</th>
+        <th>AI Time</th>
+        <th>Approvals</th>
+        <th>Code Confidence</th>
+        <th>Last Updated</th>
+        <th>MR Link</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+        <tr style="background:#0d1117;" class="story-row" onclick="window.open('https://mercedes-benz.atlassian.net/browse/BDRSP-1419','_blank')">
+          <td><a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1419" target="_blank" class="story-link">BDRSP-1419</a></td>
+          <td><span class="proj-badge">CDP-LM</span></td>
+          <td style="color:#8b949e;font-size:.85rem;">BDATART-686</td>
+          <td><span class="agent-badge agent-devflow">DevFlow</span></td>
+          <td style="color:#a371f7;">—</td>
+          <td>—</td>
+          <td><span style="background:#1a4731;color:#3fb950;padding:2px 10px;border-radius:12px;font-size:.78rem;font-weight:600;">high</span></td>
+          <td style="color:#8b949e;font-size:.85rem;">Jun 04, 2026</td>
+          <td><span style="color:#8b949e;">—</span></td>
+          <td><span style="background:#1a4731;color:#3fb950;padding:2px 10px;border-radius:12px;font-size:.78rem;font-weight:600;">Done</span></td>
+        </tr>
+        <tr style="background:#161b22;" class="story-row" onclick="window.open('https://mercedes-benz.atlassian.net/browse/BDRSP-1705','_blank')">
+          <td><a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1705" target="_blank" class="story-link">BDRSP-1705</a></td>
+          <td><span class="proj-badge">CDP-LM</span></td>
+          <td style="color:#8b949e;font-size:.85rem;">BDATART-803</td>
+          <td><span class="agent-badge agent-devflow">DevFlow</span></td>
+          <td style="color:#a371f7;">—</td>
+          <td>—</td>
+          <td><span style="background:#1a4731;color:#3fb950;padding:2px 10px;border-radius:12px;font-size:.78rem;font-weight:600;">high</span></td>
+          <td style="color:#8b949e;font-size:.85rem;">Jun 03, 2026</td>
+          <td><span style="color:#8b949e;">—</span></td>
+          <td><span style="background:#1f3a6e;color:#388bfd;padding:2px 10px;border-radius:12px;font-size:.78rem;font-weight:600;">In Progress</span></td>
+        </tr>
+    </tbody>
+  </table>
+</div>
+</div>
+
+<div id="tab-tree" class="tab-content">
+<div class="tree-section">
+  <div class="section-title" style="margin-bottom:16px;">Feature → Stories → Subtasks / DevFlow Stages</div>
+  
+  <div class="feature-node" id="feat_BDATART_686">
+    <div class="feature-header" onclick="toggleTree('feat_BDATART_686')">
+      <span class="tree-toggle" id="toggle_feat_BDATART_686">▼</span>
+      <span class="feature-type-pill">Feature</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDATART-686" target="_blank" class="feature-key">BDATART-686</a>
+      <span class="feature-name">[Linking] Implement Linking between Rhapsody Architecture Elements and MCP X-Ray testcases</span>
+      <span class="feature-status" style="color:#d29922;">🔧 Implementing</span>
+      <span class="feature-meta">10 done · 0 in progress · 3 pending</span>
+    </div>
+    <div class="feature-children" id="children_feat_BDATART_686">
+      <div class="tree-branch-line"></div>
+      <div class="siblings-container">
+        <div class="tree-section-label">Stories (13)</div>
+    <div class="story-node" id="story_BDRSP_1431" style="">
+      <div class="story-header" onclick="">
+        <span class="tree-toggle" id="toggle_story_BDRSP_1431">▸</span>
+        <span style="color:#8b949e;margin-right:4px;">▸</span>
+        <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1431" target="_blank" class="tree-key"
+           onclick="event.stopPropagation()">BDRSP-1431</a>
+        
+        <span class="tree-summary">Support Collab ART for link migration</span>
+        <span class="tree-meta">Ready · Subham Kumar · Jun 04, 2026</span>
+      </div>
+    </div>
+    <div class="story-node" id="story_BDRSP_1427" style="">
+      <div class="story-header" onclick="">
+        <span class="tree-toggle" id="toggle_story_BDRSP_1427">▸</span>
+        <span style="color:#8b949e;margin-right:4px;">▸</span>
+        <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1427" target="_blank" class="tree-key"
+           onclick="event.stopPropagation()">BDRSP-1427</a>
+        
+        <span class="tree-summary">Implement fixes based on feedback from UAT</span>
+        <span class="tree-meta">Ready · Subham Kumar · Jun 03, 2026</span>
+      </div>
+    </div>
+    <div class="story-node" id="story_BDRSP_1422" style="">
+      <div class="story-header" onclick="">
+        <span class="tree-toggle" id="toggle_story_BDRSP_1422">▸</span>
+        <span style="color:#8b949e;margin-right:4px;">▸</span>
+        <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1422" target="_blank" class="tree-key"
+           onclick="event.stopPropagation()">BDRSP-1422</a>
+        
+        <span class="tree-summary">UAT with Users</span>
+        <span class="tree-meta">Draft · Subham Kumar · Jun 04, 2026</span>
+      </div>
+    </div>
+    <div class="story-node" id="story_BDRSP_1424" style="">
+      <div class="story-header" onclick="toggleTree('story_BDRSP_1424')">
+        <span class="tree-toggle" id="toggle_story_BDRSP_1424">▶</span>
+        <span style="color:#3fb950;margin-right:4px;">✅</span>
+        <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1424" target="_blank" class="tree-key"
+           onclick="event.stopPropagation()">BDRSP-1424</a>
+        
+        <span class="tree-summary">Analysis for the link type</span>
+        <span class="tree-meta">Done · Subham Kumar · Jun 06, 2026</span>
+      </div>
+      <div class="story-children" id="children_story_BDRSP_1424" style="display:none">
+        <div class="subtasks-container">
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">└─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1452" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1452</a>
+      <span class="subtask-summary">Walkthrough on how to fetch link information (Rhapsody)</span>
+      <span class="tree-meta">Done</span>
+    </div></div>
+        
+      </div>
+    </div>
+    <div class="story-node" id="story_BDRSP_1419" style="">
+      <div class="story-header" onclick="toggleTree('story_BDRSP_1419')">
+        <span class="tree-toggle" id="toggle_story_BDRSP_1419">▶</span>
+        <span style="color:#3fb950;margin-right:4px;">✅</span>
+        <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1419" target="_blank" class="tree-key"
+           onclick="event.stopPropagation()">BDRSP-1419</a>
+        <span class="devflow-badge">DevFlow</span>
+        <span class="tree-summary">Resource Endpoints Enhancement</span>
+        <span class="tree-meta">Done · Subham Kumar · Jun 04, 2026</span>
+      </div>
+      <div class="story-children" id="children_story_BDRSP_1419" style="display:none">
+        <div class="subtasks-container">
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1517" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1517</a>
+      <span class="subtask-summary">BDRSP-1419: Implement and validate scoped story change</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1518" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1518</a>
+      <span class="subtask-summary">Update link-response-qm.xml Thymeleaf template to render VALIDATES_ARCHITECTURE_ELEMENT links</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">└─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1519" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1519</a>
+      <span class="subtask-summary">Ensure Compact resource and preview endpoints work for QM resources with AM links</span>
+      <span class="tree-meta">Done</span>
+    </div></div>
+        
+    <div style="display:flex;gap:14px;flex-wrap:wrap;padding:4px 4px 4px 22px;font-size:.78rem;color:#8b949e;">
+      <span>🤖 AI: <b style="color:#a371f7;">—</b></span>
+      <span>🧪 Tests: <b style="color:#8b949e;">—</b></span>
+      <div class="detail-item" style="margin-left:22px;">⏸ <span style="color:#d29922;font-size:.78rem;">Jira story update approval required</span></div>
+    </div>
+      </div>
+    </div>
+    <div class="story-node" id="story_BDRSP_1423" style="">
+      <div class="story-header" onclick="">
+        <span class="tree-toggle" id="toggle_story_BDRSP_1423">▸</span>
+        <span style="color:#3fb950;margin-right:4px;">✅</span>
+        <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1423" target="_blank" class="tree-key"
+           onclick="event.stopPropagation()">BDRSP-1423</a>
+        
+        <span class="tree-summary">Go-Live</span>
+        <span class="tree-meta">Done · Subham Kumar · Jun 03, 2026</span>
+      </div>
+    </div>
+    <div class="story-node" id="story_BDRSP_1417" style="">
+      <div class="story-header" onclick="toggleTree('story_BDRSP_1417')">
+        <span class="tree-toggle" id="toggle_story_BDRSP_1417">▶</span>
+        <span style="color:#3fb950;margin-right:4px;">✅</span>
+        <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1417" target="_blank" class="tree-key"
+           onclick="event.stopPropagation()">BDRSP-1417</a>
+        
+        <span class="tree-summary">LinkService, LinkCreationService & LinkStorageService</span>
+        <span class="tree-meta">Done · Subham Kumar · May 31, 2026</span>
+      </div>
+      <div class="story-children" id="children_story_BDRSP_1417" style="display:none">
+        <div class="subtasks-container">
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1492" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1492</a>
+      <span class="subtask-summary">(LinkStorageService) : Implement saveQmToAmLink() and deleteQmToAmLink() in LinkStorageService</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1493" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1493</a>
+      <span class="subtask-summary">(LinkCreationService) : Implement createQmToAmLink() and deleteQmToAmLink() in LinkCreationService</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">└─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1494" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1494</a>
+      <span class="subtask-summary">(LinkService) : Extend LinkService to route QM → AM link creation and deletion for GraphQL and OSLC paths</span>
+      <span class="tree-meta">Done</span>
+    </div></div>
+        
+      </div>
+    </div>
+    <div class="story-node" id="story_BDRSP_1415" style="">
+      <div class="story-header" onclick="">
+        <span class="tree-toggle" id="toggle_story_BDRSP_1415">▸</span>
+        <span style="color:#6e7681;margin-right:4px;">🚫</span>
+        <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1415" target="_blank" class="tree-key"
+           onclick="event.stopPropagation()">BDRSP-1415</a>
+        
+        <span class="tree-summary">Analysis for the link type</span>
+        <span class="tree-meta">Cancelled · Subham Kumar · May 31, 2026</span>
+      </div>
+    </div>
+    <div class="story-node" id="story_BDRSP_1420" style="">
+      <div class="story-header" onclick="toggleTree('story_BDRSP_1420')">
+        <span class="tree-toggle" id="toggle_story_BDRSP_1420">▶</span>
+        <span style="color:#3fb950;margin-right:4px;">✅</span>
+        <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1420" target="_blank" class="tree-key"
+           onclick="event.stopPropagation()">BDRSP-1420</a>
+        
+        <span class="tree-summary">Confluence Documentation Update — ADR-002.3: VALIDATES_ARCHITECTURE_ELEMENT Link Type</span>
+        <span class="tree-meta">Done · Subham Kumar · May 31, 2026</span>
+      </div>
+      <div class="story-children" id="children_story_BDRSP_1420" style="display:none">
+        <div class="subtasks-container">
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">└─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1704" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1704</a>
+      <span class="subtask-summary">BDRSP-1420: Document — Create ADR-002.3 for VALIDATES_ARCHITECTURE_ELEMENT Link Type</span>
+      <span class="tree-meta">Done</span>
+    </div></div>
+        
+      </div>
+    </div>
+    <div class="story-node" id="story_BDRSP_1421" style="">
+      <div class="story-header" onclick="">
+        <span class="tree-toggle" id="toggle_story_BDRSP_1421">▸</span>
+        <span style="color:#3fb950;margin-right:4px;">✅</span>
+        <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1421" target="_blank" class="tree-key"
+           onclick="event.stopPropagation()">BDRSP-1421</a>
+        
+        <span class="tree-summary">Integration Test Case Update & Fixes for Rhapsody Linking</span>
+        <span class="tree-meta">Done · Subham Kumar · May 28, 2026</span>
+      </div>
+    </div>
+    <div class="story-node" id="story_BDRSP_1413" style="">
+      <div class="story-header" onclick="toggleTree('story_BDRSP_1413')">
+        <span class="tree-toggle" id="toggle_story_BDRSP_1413">▶</span>
+        <span style="color:#3fb950;margin-right:4px;">✅</span>
+        <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1413" target="_blank" class="tree-key"
+           onclick="event.stopPropagation()">BDRSP-1413</a>
+        
+        <span class="tree-summary">Observability Layer — Usecase, Validation and Metric Update for Rhapsody</span>
+        <span class="tree-meta">Done · Subham Kumar · May 25, 2026</span>
+      </div>
+      <div class="story-children" id="children_story_BDRSP_1413" style="display:none">
+        <div class="subtasks-container">
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">└─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1659" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1659</a>
+      <span class="subtask-summary">BDRSP-1413: Implement and validate scoped story change</span>
+      <span class="tree-meta">Done</span>
+    </div></div>
+        
+      </div>
+    </div>
+    <div class="story-node" id="story_BDRSP_1418" style="">
+      <div class="story-header" onclick="toggleTree('story_BDRSP_1418')">
+        <span class="tree-toggle" id="toggle_story_BDRSP_1418">▶</span>
+        <span style="color:#3fb950;margin-right:4px;">✅</span>
+        <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1418" target="_blank" class="tree-key"
+           onclick="event.stopPropagation()">BDRSP-1418</a>
+        
+        <span class="tree-summary">TRS Feed Enhancement — QM Jira to Rhapsody (QM → AM Link Events)</span>
+        <span class="tree-meta">Done · Subham Kumar · May 25, 2026</span>
+      </div>
+      <div class="story-children" id="children_story_BDRSP_1418" style="display:none">
+        <div class="subtasks-container">
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#6e7681;font-size:.85rem;">🚫</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1593" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1593</a>
+      <span class="subtask-summary">BDRSP-1418: Analyze</span>
+      <span class="tree-meta">Cancelled</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#6e7681;font-size:.85rem;">🚫</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1594" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1594</a>
+      <span class="subtask-summary">BDRSP-1418: Plan</span>
+      <span class="tree-meta">Cancelled</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#6e7681;font-size:.85rem;">🚫</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1595" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1595</a>
+      <span class="subtask-summary">BDRSP-1418: Execute</span>
+      <span class="tree-meta">Cancelled</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#6e7681;font-size:.85rem;">🚫</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1596" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1596</a>
+      <span class="subtask-summary">BDRSP-1418: Validate</span>
+      <span class="tree-meta">Cancelled</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#6e7681;font-size:.85rem;">🚫</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1597" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1597</a>
+      <span class="subtask-summary">BDRSP-1418: Document</span>
+      <span class="tree-meta">Cancelled</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#6e7681;font-size:.85rem;">🚫</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1598" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1598</a>
+      <span class="subtask-summary">BDRSP-1418: Analyze</span>
+      <span class="tree-meta">Cancelled</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#6e7681;font-size:.85rem;">🚫</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1599" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1599</a>
+      <span class="subtask-summary">BDRSP-1418: Plan</span>
+      <span class="tree-meta">Cancelled</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#6e7681;font-size:.85rem;">🚫</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1600" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1600</a>
+      <span class="subtask-summary">BDRSP-1418: Execute</span>
+      <span class="tree-meta">Cancelled</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#6e7681;font-size:.85rem;">🚫</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1601" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1601</a>
+      <span class="subtask-summary">BDRSP-1418: Validate</span>
+      <span class="tree-meta">Cancelled</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#6e7681;font-size:.85rem;">🚫</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1602" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1602</a>
+      <span class="subtask-summary">BDRSP-1418: Document</span>
+      <span class="tree-meta">Cancelled</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1603" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1603</a>
+      <span class="subtask-summary">BDRSP-1418: Analyze — Confirm AM entity fields, feed routing, and GraphQL schema gap</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1604" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1604</a>
+      <span class="subtask-summary">BDRSP-1418: Implement — Add createChangeEventEntityQmToAm() to TrsChangeEventHelper</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1605" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1605</a>
+      <span class="subtask-summary">BDRSP-1418: Implement — Add createChangeEventQmToAm() to TrsCreateChangeEventService</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1606" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1606</a>
+      <span class="subtask-summary">BDRSP-1418: Implement — Update LinkStorageService to use new QM→AM TRS event method</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1607" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1607</a>
+      <span class="subtask-summary">BDRSP-1418: Test — Unit tests for TrsChangeEventHelper, TrsCreateChangeEventService, LinkStorageService</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">└─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1608" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1608</a>
+      <span class="subtask-summary">BDRSP-1418: Validate — Integration test and RDF/XML output verification at /trs/qm</span>
+      <span class="tree-meta">Done</span>
+    </div></div>
+        
+      </div>
+    </div>
+    <div class="story-node" id="story_BDRSP_1412" style="">
+      <div class="story-header" onclick="">
+        <span class="tree-toggle" id="toggle_story_BDRSP_1412">▸</span>
+        <span style="color:#3fb950;margin-right:4px;">✅</span>
+        <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1412" target="_blank" class="tree-key"
+           onclick="event.stopPropagation()">BDRSP-1412</a>
+        
+        <span class="tree-summary">Co//ab Team Coordination — ForgeApp LinkType Configuration</span>
+        <span class="tree-meta">Done · Subham Kumar · Apr 27, 2026</span>
+      </div>
+    </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="feature-node" id="feat_BDATART_803">
+    <div class="feature-header" onclick="toggleTree('feat_BDATART_803')">
+      <span class="tree-toggle" id="toggle_feat_BDATART_803">▼</span>
+      <span class="feature-type-pill">Feature</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDATART-803" target="_blank" class="feature-key">BDATART-803</a>
+      <span class="feature-name">[Linking] Stabilize Linking Middleware with PMT Cortex Enablement</span>
+      <span class="feature-status" style="color:#8b949e;">▸ Ready for Implementation</span>
+      <span class="feature-meta">0 done · 2 in progress · 0 pending</span>
+    </div>
+    <div class="feature-children" id="children_feat_BDATART_803">
+      <div class="tree-branch-line"></div>
+      <div class="siblings-container">
+        <div class="tree-section-label">Stories (2)</div>
+    <div class="story-node" id="story_BDRSP_1623" style="border-left:3px solid #388bfd;background:rgba(56,139,253,.06);">
+      <div class="story-header" onclick="toggleTree('story_BDRSP_1623')">
+        <span class="tree-toggle" id="toggle_story_BDRSP_1623">▶</span>
+        <span style="color:#388bfd;margin-right:4px;">🔵</span>
+        <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1623" target="_blank" class="tree-key"
+           onclick="event.stopPropagation()">BDRSP-1623</a>
+        
+        <span class="tree-summary">Analysis - Enable AM(Rhapsody) to CM(Jira) Linking via relatedArchitectureElement OSLC Predicate</span>
+        <span class="tree-meta">In Progress · Subham Kumar · Jun 04, 2026</span>
+      </div>
+      <div class="story-children" id="children_story_BDRSP_1623" style="display:none">
+        <div class="subtasks-container">
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1632" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1632</a>
+      <span class="subtask-summary">BDRSP-1623: Implement and validate scoped story change</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#388bfd;font-size:.85rem;">🔵</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1633" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1633</a>
+      <span class="subtask-summary">Analyze on the other changes which are required to enable linking</span>
+      <span class="tree-meta">In Progress</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1634" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1634</a>
+      <span class="subtask-summary">Update the ADR</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">└─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1635" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1635</a>
+      <span class="subtask-summary">Communicate with Jira team with the link information that they need to support</span>
+      <span class="tree-meta">Done</span>
+    </div></div>
+        
+      </div>
+    </div>
+    <div class="story-node" id="story_BDRSP_1705" style="border-left:3px solid #388bfd;background:rgba(56,139,253,.06);">
+      <div class="story-header" onclick="toggleTree('story_BDRSP_1705')">
+        <span class="tree-toggle" id="toggle_story_BDRSP_1705">▶</span>
+        <span style="color:#388bfd;margin-right:4px;">🔵</span>
+        <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1705" target="_blank" class="tree-key"
+           onclick="event.stopPropagation()">BDRSP-1705</a>
+        <span class="devflow-badge">DevFlow</span>
+        <span class="tree-summary">Implement AM(Rhapsody) → CM(Jira) Linking via RELATED_ARCHITECTURE_ELEMENT Link Type</span>
+        <span class="tree-meta">In Progress · Subham Kumar · Jun 03, 2026</span>
+      </div>
+      <div class="story-children" id="children_story_BDRSP_1705" style="display:none">
+        <div class="subtasks-container">
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1706" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1706</a>
+      <span class="subtask-summary">BDRSP-1705: Implement and validate scoped story change</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1707" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1707</a>
+      <span class="subtask-summary">BDRSP-1705: Implement — Add routing branch in UsecaseUtil.java for RELATED_ARCHITECTURE_ELEMENT</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1708" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1708</a>
+      <span class="subtask-summary">BDRSP-1705: Implement — Add RELATED_ARCHITECTURE_ELEMENT to isArchitectureTargetLinkType() in EntityToDtoTrans</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1709" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1709</a>
+      <span class="subtask-summary">BDRSP-1705: Implement — Add createAmToCmLink() / deleteAmToCmLink() to LinkCreationService and wire in LinkSer</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1710" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1710</a>
+      <span class="subtask-summary">BDRSP-1705: Test — Unit tests for UsecaseUtil, EntityToDtoTransformerService, LinkCreationService</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">└─</span>
+      <span style="color:#388bfd;font-size:.85rem;">🔵</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1711" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1711</a>
+      <span class="subtask-summary">BDRSP-1705: Validate — End-to-end functional test on DEV once ForgeApp is ready</span>
+      <span class="tree-meta">In Progress</span>
+    </div></div>
+        
+    <div style="display:flex;gap:14px;flex-wrap:wrap;padding:4px 4px 4px 22px;font-size:.78rem;color:#8b949e;">
+      <span>🤖 AI: <b style="color:#a371f7;">—</b></span>
+      <span>🧪 Tests: <b style="color:#8b949e;">—</b></span>
+      <div class="detail-item" style="margin-left:22px;">⏸ <span style="color:#d29922;font-size:.78rem;">Jira story update approval required</span></div>
+    </div>
+      </div>
+    </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="feature-node" id="feat_BDATART_391">
+    <div class="feature-header" onclick="toggleTree('feat_BDATART_391')">
+      <span class="tree-toggle" id="toggle_feat_BDATART_391">▼</span>
+      <span class="feature-type-pill">Feature</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDATART-391" target="_blank" class="feature-key">BDATART-391</a>
+      <span class="feature-name">[Linking] Implement interface to link SFM System Models->CCL Artifacts</span>
+      <span class="feature-status" style="color:#8b949e;">▸ ready for deployment</span>
+      <span class="feature-meta">0 done · 0 in progress · 1 pending</span>
+    </div>
+    <div class="feature-children" id="children_feat_BDATART_391">
+      <div class="tree-branch-line"></div>
+      <div class="siblings-container">
+        <div class="tree-section-label">Stories (1)</div>
+    <div class="story-node" id="story_BDRSP_1344" style="">
+      <div class="story-header" onclick="toggleTree('story_BDRSP_1344')">
+        <span class="tree-toggle" id="toggle_story_BDRSP_1344">▶</span>
+        <span style="color:#8b949e;margin-right:4px;">▸</span>
+        <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1344" target="_blank" class="tree-key"
+           onclick="event.stopPropagation()">BDRSP-1344</a>
+        
+        <span class="tree-summary">Analysis + Implementation on delegated UI not coming on Rhapsody</span>
+        <span class="tree-meta">Draft · Subham Kumar · May 31, 2026</span>
+      </div>
+      <div class="story-children" id="children_story_BDRSP_1344" style="display:none">
+        <div class="subtasks-container">
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1365" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1365</a>
+      <span class="subtask-summary">Analyze current solution end-to-end</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1366" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1366</a>
+      <span class="subtask-summary">Fix OSLC Service Provider Document for AM</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1367" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1367</a>
+      <span class="subtask-summary">Fix AM Rootservices Document (am_rootservice.xml)</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1368" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1368</a>
+      <span class="subtask-summary">Fix Service Provider Catalog</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1369" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1369</a>
+      <span class="subtask-summary">Fix AM Query Results Rendering</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1370" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1370</a>
+      <span class="subtask-summary">Add Config Catalog Template</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1371" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1371</a>
+      <span class="subtask-summary">Add Config Catalog Endpoint</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1372" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1372</a>
+      <span class="subtask-summary">Add configCatalogUrl Variable to Rootservices Context</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1373" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1373</a>
+      <span class="subtask-summary">Fix AM Link Creation Method</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1374" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1374</a>
+      <span class="subtask-summary">Fix AM Payload Parser</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">├─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1375" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1375</a>
+      <span class="subtask-summary">Implement Rhapsody-CCL Use Case Resolution</span>
+      <span class="tree-meta">Done</span>
+    </div>
+    <div class="subtask-tree-node">
+      <span class="subtask-connector">└─</span>
+      <span style="color:#3fb950;font-size:.85rem;">✅</span>
+      <a href="https://mercedes-benz.atlassian.net/browse/BDRSP-1376" target="_blank" class="tree-key subtask-key"
+         onclick="event.stopPropagation()">BDRSP-1376</a>
+      <span class="subtask-summary">Fix Unit Test</span>
+      <span class="tree-meta">Done</span>
+    </div></div>
+        
+      </div>
+    </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="footer">
+  DevFlow Automation Analytics &nbsp;·&nbsp; cdp-linking-middleware &nbsp;·&nbsp;
+  <a href="repo-graph.html" style="color:#58a6ff;">Repo Graph</a>
+</div>
+
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-btn-' + tab).classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+function toggleTree(id) {
+  var children = document.getElementById('children_' + id);
+  var toggle   = document.getElementById('toggle_' + id);
+  if (children.style.display === 'none') {
+    children.style.display = '';
+    toggle.style.transform = 'rotate(0deg)';
+    toggle.textContent = '▼';
+  } else {
+    children.style.display = 'none';
+    toggle.style.transform = 'rotate(-90deg)';
+    toggle.textContent = '▶';
+  }
+}
+</script>
+
+</body>
+</html>

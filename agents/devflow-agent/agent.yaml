@@ -1,0 +1,9 @@
+name: devflow-agent
+display_name: DevFlow Agent
+description: One-agent end-to-end development workflow for Jira story implementation, testing, review, and merge request preparation.
+enabled: false
+entrypoint: "python3 -m src.main"
+tools:
+  - dev_implement_story
+mcp_servers:
+  - dev-mcp

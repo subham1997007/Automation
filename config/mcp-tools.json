@@ -1,0 +1,341 @@
+{
+  "version": 1,
+  "profiles": {
+    "jira": [
+      "jira-mcp"
+    ],
+    "gitlab": [
+      "gitlab-mcp"
+    ],
+    "test": [
+      "test-mcp"
+    ],
+    "review": [
+      "review-mcp"
+    ],
+    "dev": [
+      "dev-mcp",
+      "jira-mcp",
+      "gitlab-mcp"
+    ]
+  },
+  "servers": [
+    {
+      "name": "jira-mcp",
+      "enabled": true,
+      "path": "mcp-servers/jira-mcp",
+      "transport": "stdio",
+      "command": [
+        "python3",
+        "src/server.py"
+      ],
+      "owner": "jiraforge-agent",
+      "description": "Focused MCP server for JiraForge Agent."
+    },
+    {
+      "name": "gitlab-mcp",
+      "enabled": true,
+      "path": "mcp-servers/gitlab-mcp",
+      "transport": "stdio",
+      "command": [
+        "python3",
+        "src/server.py"
+      ],
+      "owner": "gitbridge-agent",
+      "description": "Focused MCP server for GitBridge Agent."
+    },
+    {
+      "name": "test-mcp",
+      "enabled": false,
+      "path": "mcp-servers/test-mcp",
+      "transport": "stdio",
+      "command": [
+        "python3",
+        "src/server.py"
+      ],
+      "owner": "testpilot-agent",
+      "description": "Focused MCP server for TestPilot Agent."
+    },
+    {
+      "name": "review-mcp",
+      "enabled": false,
+      "path": "mcp-servers/review-mcp",
+      "transport": "stdio",
+      "command": [
+        "python3",
+        "src/server.py"
+      ],
+      "owner": "reviewsmith-agent",
+      "description": "Focused MCP server for ReviewSmith Agent."
+    },
+    {
+      "name": "dev-mcp",
+      "enabled": true,
+      "path": "mcp-servers/dev-mcp",
+      "transport": "stdio",
+      "command": [
+        "python3",
+        "src/server.py"
+      ],
+      "owner": "devflow-agent",
+      "description": "Single-tool MCP server for end-to-end development workflow."
+    }
+  ],
+  "tools": [
+    {
+      "name": "dev_plan_feature_stories",
+      "server": "dev-mcp",
+      "owner": "devflow-agent",
+      "description": "Learn a Feature end to end, including sprint-wise existing stories, Confluence cache excerpts, repo graph context, missing delivery phases, and the next approval gate before drafting stories."
+    },
+    {
+      "name": "dev_bootstrap_feature_stories",
+      "server": "dev-mcp",
+      "owner": "devflow-agent",
+      "description": "Complete Feature bootstrap flow: learn Feature context, discover existing child stories, read Confluence/ADR cache and repo graph, generate BDRSP-1623 story payloads when none exist, require sprint assignment, preview first, and create only after approval."
+    },
+    {
+      "name": "dev_create_feature_stories",
+      "server": "dev-mcp",
+      "owner": "devflow-agent",
+      "description": "Preview or create all approved sprint-wise stories for a Feature through DevFlow after feature planning, codebase review, style validation, and explicit confirmation."
+    },
+    {
+      "name": "dev_implement_story",
+      "server": "dev-mcp",
+      "owner": "devflow-agent",
+      "description": "Orchestrate Jira story readiness, branch setup, scoped code implementation contract, autonomous test execution (run_tests=true runs mvn/gradle/pytest via subprocess — no IDE terminal needed), review, and approved MR creation.",
+      "performance": {
+        "parallel_at_start": ["jira_fetch", "codebase_scan", "memory_load"],
+        "codebase_index_path": "Automation/.memory/codebase-index.json",
+        "confluence_cache_path": "Automation/.memory/confluence-cache/",
+        "confluence_cache_ttl_hours": 24,
+        "default_test_command": "mvn --no-transfer-progress test -Dtest=\"{IMPACTED_TEST_CLASSES}\" -DfailIfNoTests=false",
+        "full_test_command": "mvn --no-transfer-progress test",
+        "test_mapping_source": "Automation/.memory/codebase-index.json#test_command_patterns"
+      }
+    },
+    {
+      "name": "jira_check_connection",
+      "server": "jira-mcp",
+      "owner": "jiraforge-agent",
+      "description": "Validate Jira credentials and return connected user info."
+    },
+    {
+      "name": "jira_read_story",
+      "server": "jira-mcp",
+      "owner": "jiraforge-agent",
+      "description": "Fetch full Jira issue/story details by Jira ID/key."
+    },
+    {
+      "name": "jira_analyze_story",
+      "server": "jira-mcp",
+      "owner": "jiraforge-agent",
+      "description": "Analyze Jira story, ACs, gaps, clearer wording, and next steps."
+    },
+    {
+      "name": "jira_plan_feature_stories",
+      "server": "jira-mcp",
+      "owner": "jiraforge-agent",
+      "description": "Learn a Feature end to end, including sprint-wise existing stories, Confluence cache excerpts, repo graph context, missing delivery phases, and the mandatory story style contract."
+    },
+    {
+      "name": "jira_bootstrap_feature_stories",
+      "server": "jira-mcp",
+      "owner": "jiraforge-agent",
+      "description": "Complete Feature bootstrap flow: learn Feature context, discover existing child stories, read Confluence/ADR cache and repo graph, generate BDRSP-1623 story payloads when none exist, require sprint assignment, preview first, and create only after approval."
+    },
+    {
+      "name": "jira_create_feature_stories",
+      "server": "jira-mcp",
+      "owner": "jiraforge-agent",
+      "description": "Preview or create all approved stories for a Feature after jira_plan_feature_stories, codebase review, style validation, and explicit confirmation."
+    },
+    {
+      "name": "jira_plan_subtasks",
+      "server": "jira-mcp",
+      "owner": "jiraforge-agent",
+      "description": "Suggest minimal subtasks without creating them."
+    },
+    {
+      "name": "jira_refine_story",
+      "server": "jira-mcp",
+      "owner": "jiraforge-agent",
+      "description": "Suggest and optionally apply a professional Jira story title, description, and ACs after approval. Subtasks are suggestion-only."
+    },
+    {
+      "name": "jira_feature_context",
+      "server": "jira-mcp",
+      "owner": "jiraforge-agent",
+      "description": "Read the parent Feature, sibling stories, completed stories, and current story fit before Jira story writing."
+    },
+    {
+      "name": "jira_delete_subtasks",
+      "server": "jira-mcp",
+      "owner": "jiraforge-agent",
+      "description": "Preview and delete Jira subtasks only after explicit confirmation."
+    },
+    {
+      "name": "jira_manage_subtasks",
+      "server": "jira-mcp",
+      "owner": "jiraforge-agent",
+      "description": "Plan and safely create/update Jira subtasks after duplicate checks and explicit per-action approval."
+    },
+    {
+      "name": "gitlab_check_connection",
+      "server": "gitlab-mcp",
+      "owner": "gitbridge-agent",
+      "description": "Validate GitLab credentials and project access."
+    },
+    {
+      "name": "gitlab_check_token_health",
+      "server": "gitlab-mcp",
+      "owner": "gitbridge-agent",
+      "description": "Check whether the GitLab token is valid, its expiry date, days remaining, and step-by-step renewal instructions. Call this when any GitLab tool returns 401/403 or when the token might be stale."
+    },
+    {
+      "name": "gitlab_get_merge_request",
+      "server": "gitlab-mcp",
+      "owner": "gitbridge-agent",
+      "description": "Fetch merge request metadata, branches, reviewers, state, and pipeline summary."
+    },
+    {
+      "name": "gitlab_get_merge_request_changes",
+      "server": "gitlab-mcp",
+      "owner": "gitbridge-agent",
+      "description": "Fetch changed files and diff metadata for a merge request."
+    },
+    {
+      "name": "gitlab_get_merge_request_discussions",
+      "server": "gitlab-mcp",
+      "owner": "gitbridge-agent",
+      "description": "Fetch merge request discussions and unresolved thread summary."
+    },
+    {
+      "name": "gitlab_get_pipeline_status",
+      "server": "gitlab-mcp",
+      "owner": "gitbridge-agent",
+      "description": "Fetch the merge request head pipeline and recent pipeline statuses."
+    },
+    {
+      "name": "gitlab_create_branch",
+      "server": "gitlab-mcp",
+      "owner": "gitbridge-agent",
+      "description": "Create a local Git branch using the project branch naming convention."
+    },
+    {
+      "name": "gitlab_prepare_merge_request",
+      "server": "gitlab-mcp",
+      "owner": "gitbridge-agent",
+      "description": "Prepare a professional MR title and description without pushing or creating an MR."
+    },
+    {
+      "name": "gitlab_push_branch",
+      "server": "gitlab-mcp",
+      "owner": "gitbridge-agent",
+      "description": "Push a branch to GitLab. Defaults to dry-run for safety."
+    },
+    {
+      "name": "gitlab_create_merge_request",
+      "server": "gitlab-mcp",
+      "owner": "gitbridge-agent",
+      "description": "Create a GitLab merge request through the API without committing or pushing local code."
+    },
+    {
+      "name": "jiraforge_code_updater",
+      "server": "gitlab-mcp",
+      "owner": "gitbridge-agent",
+      "description": "Prepare a safe Jira story/subtask implementation contract for lightweight code updates."
+    },
+    {
+      "name": "test_detect_project_type",
+      "server": "test-mcp",
+      "owner": "testpilot-agent",
+      "description": "Detect the project build/test ecosystem such as Maven, Gradle, Node, Python, Go, or .NET."
+    },
+    {
+      "name": "test_discover_test_commands",
+      "server": "test-mcp",
+      "owner": "testpilot-agent",
+      "description": "Discover likely unit, integration, and specific-test commands from project files."
+    },
+    {
+      "name": "test_run_unit_tests",
+      "server": "test-mcp",
+      "owner": "testpilot-agent",
+      "description": "Run unit tests using the detected command, or an explicit command when provided."
+    },
+    {
+      "name": "test_run_integration_tests",
+      "server": "test-mcp",
+      "owner": "testpilot-agent",
+      "description": "Run integration tests using the detected command, or an explicit command when provided."
+    },
+    {
+      "name": "test_run_specific_test",
+      "server": "test-mcp",
+      "owner": "testpilot-agent",
+      "description": "Run one focused test class, file, method, or test target."
+    },
+    {
+      "name": "test_analyze_failures",
+      "server": "test-mcp",
+      "owner": "testpilot-agent",
+      "description": "Analyze test failure output or report snippets and explain likely causes."
+    },
+    {
+      "name": "test_collect_test_reports",
+      "server": "test-mcp",
+      "owner": "testpilot-agent",
+      "description": "Collect test report file paths and snippets from common report locations."
+    },
+    {
+      "name": "test_generate_test_summary",
+      "server": "test-mcp",
+      "owner": "testpilot-agent",
+      "description": "Generate a concise testing report with detected project type, commands, reports, and next steps."
+    },
+    {
+      "name": "test_current_change_report",
+      "server": "test-mcp",
+      "owner": "testpilot-agent",
+      "description": "Read current code changes and produce a test scope/report with recommended commands and report evidence."
+    },
+    {
+      "name": "review_inspect_story_implementation",
+      "server": "review-mcp",
+      "owner": "reviewsmith-agent",
+      "description": "Inspect whether the current repo already has code related to a Jira story."
+    },
+    {
+      "name": "review_analyze_current_changes",
+      "server": "review-mcp",
+      "owner": "reviewsmith-agent",
+      "description": "Analyze current Git changes, changed areas, risk signals, commits, and diff stat."
+    },
+    {
+      "name": "review_check_acceptance_criteria_coverage",
+      "server": "review-mcp",
+      "owner": "reviewsmith-agent",
+      "description": "Check whether current changes show signals for each acceptance criterion."
+    },
+    {
+      "name": "review_suggest_improvements",
+      "server": "review-mcp",
+      "owner": "reviewsmith-agent",
+      "description": "Suggest review improvements based on current changes, risks, and AC coverage signals."
+    },
+    {
+      "name": "review_generate_change_summary",
+      "server": "review-mcp",
+      "owner": "reviewsmith-agent",
+      "description": "Generate a consolidated review report for current changes against a Jira story."
+    },
+    {
+      "name": "review_full_current_changes",
+      "server": "review-mcp",
+      "owner": "reviewsmith-agent",
+      "description": "Read current code changes and produce a full review with risks, suggestions, and modern engineering guidance."
+    }
+  ]
+}

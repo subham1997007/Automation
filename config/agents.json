@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "agents": [
+    {
+      "name": "jiraforge-agent",
+      "enabled": true,
+      "path": "agents/jiraforge-agent",
+      "command": [
+        "python3",
+        "-m",
+        "src.main"
+      ],
+      "description": "JiraForge Agent reads Jira stories and prepares them for future automation workflows."
+    },
+    {
+      "name": "gitbridge-agent",
+      "enabled": false,
+      "path": "agents/gitbridge-agent",
+      "command": [
+        "python3",
+        "-m",
+        "src.main"
+      ],
+      "description": "GitBridge Agent will handle GitLab branches, merge requests, and pipelines."
+    },
+    {
+      "name": "testpilot-agent",
+      "enabled": false,
+      "path": "agents/testpilot-agent",
+      "command": [
+        "python3",
+        "-m",
+        "src.main"
+      ],
+      "description": "TestPilot Agent will handle test planning, execution, and failure analysis."
+    },
+    {
+      "name": "reviewsmith-agent",
+      "enabled": false,
+      "path": "agents/reviewsmith-agent",
+      "command": [
+        "python3",
+        "-m",
+        "src.main"
+      ],
+      "description": "ReviewSmith Agent will handle code review and risk analysis."
+    },
+    {
+      "name": "devflow-agent",
+      "enabled": false,
+      "path": "agents/devflow-agent",
+      "command": [
+        "python3",
+        "-m",
+        "src.main"
+      ],
+      "description": "DevFlow Agent orchestrates end-to-end Jira story implementation, testing, review, and merge request creation."
+    }
+  ]
+}

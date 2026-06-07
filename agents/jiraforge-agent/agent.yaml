@@ -1,0 +1,16 @@
+name: jiraforge-agent
+display_name: JiraForge Agent
+description: Reads Jira stories and prepares them for future automation workflows.
+enabled: true
+entrypoint: "python3 -m src.main"
+tools:
+  - jira_check_connection
+  - jira_read_story
+  - jira_analyze_story
+  - jira_feature_context
+  - jira_plan_subtasks
+  - jira_refine_story
+  - jira_delete_subtasks
+  - jira_manage_subtasks
+mcp_servers:
+  - jira-mcp

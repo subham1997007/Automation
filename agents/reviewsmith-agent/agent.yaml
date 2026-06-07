@@ -1,0 +1,14 @@
+name: reviewsmith-agent
+display_name: ReviewSmith Agent
+description: Agent for story implementation review, standards checks, and risk analysis.
+enabled: false
+entrypoint: "python3 -m src.main"
+tools:
+  - review_inspect_story_implementation
+  - review_analyze_current_changes
+  - review_check_acceptance_criteria_coverage
+  - review_suggest_improvements
+  - review_generate_change_summary
+  - review_full_current_changes
+mcp_servers:
+  - review-mcp

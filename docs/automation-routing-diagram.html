@@ -1,0 +1,1645 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jira Request Flow — MCP Routing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg:       #090b10;
+      --surface:  #0f1218;
+      --surface-2:#161c26;
+      --surface-3:#1d2535;
+      --glass:    rgba(16, 20, 32, 0.72);
+      --ink:      #eef2ff;
+      --muted:    #8b95b0;
+      --soft:     #5a6278;
+      --line:     #232d42;
+      --blue:     #4d9fff;
+      --cyan:     #2dd4bf;
+      --green:    #4ade80;
+      --amber:    #fbbf24;
+      --red:      #f87171;
+      --violet:   #a78bfa;
+      --pink:     #f472b6;
+      --radius:   10px;
+      --radius-lg:16px;
+      font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ─── Background ─── */
+    body {
+      min-height: 100vh;
+      color: var(--ink);
+      background: var(--bg);
+      overflow: hidden;
+    }
+    .bg-orbs {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
+    }
+    .bg-orbs span {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.12;
+      animation: orbDrift 18s ease-in-out infinite alternate;
+    }
+    .bg-orbs span:nth-child(1) { width: 600px; height: 600px; background: var(--blue);   top: -200px; left: -100px; animation-duration: 18s; }
+    .bg-orbs span:nth-child(2) { width: 500px; height: 500px; background: var(--violet); top: 40%;   right: -150px; animation-duration: 22s; animation-delay: -6s; }
+    .bg-orbs span:nth-child(3) { width: 400px; height: 400px; background: var(--cyan);   bottom: -100px; left: 30%; animation-duration: 15s; animation-delay: -10s; }
+    @keyframes orbDrift {
+      0%   { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(40px, 60px) scale(1.12); }
+    }
+
+    /* ─── Grain overlay ─── */
+    body::after {
+      content: "";
+      position: fixed; inset: 0; pointer-events: none; z-index: 1;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      opacity: 0.35;
+    }
+
+    /* ─── Deck shell ─── */
+    .deck {
+      position: relative; z-index: 2;
+      width: min(1700px, calc(100vw - 24px));
+      height: min(980px, calc(100vh - 16px));
+      margin: 8px auto;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      gap: 10px;
+    }
+
+    /* ─── Topbar ─── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 16px;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: var(--radius-lg);
+      background: var(--glass);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.13em; text-transform: uppercase;
+      background: linear-gradient(90deg, var(--cyan), var(--blue));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .brand-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 3px rgba(74,222,128,0.2), 0 0 14px rgba(74,222,128,0.6);
+      animation: pulseDot 2s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+    @keyframes pulseDot {
+      0%,100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(0.7); opacity: 0.5; }
+    }
+    .slide-count {
+      color: var(--muted); font-size: 12px; font-weight: 600; white-space: nowrap;
+    }
+    .topbar-right {
+      display: flex; align-items: center; gap: 14px;
+    }
+    .keyboard-hint {
+      display: flex; align-items: center; gap: 5px;
+      color: var(--soft); font-size: 10px; font-weight: 600;
+      letter-spacing: 0.06em;
+    }
+    .key {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px;
+      border: 1px solid var(--line); border-radius: 4px;
+      background: var(--surface-2);
+      color: var(--muted); font-size: 10px; font-weight: 700;
+    }
+
+    /* ─── Slides area ─── */
+    .slides {
+      position: relative; min-height: 0;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius-lg);
+      background: linear-gradient(160deg, rgba(22,28,42,0.98), rgba(9,11,16,0.99));
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset, 0 40px 100px rgba(0,0,0,0.5);
+      overflow: hidden;
+    }
+    .slides::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 60% 40% at 15% 0%, rgba(77,159,255,0.09), transparent 55%),
+        radial-gradient(ellipse 50% 35% at 85% 100%, rgba(251,191,36,0.07), transparent 50%);
+    }
+
+    /* ─── Individual slide ─── */
+    .slide {
+      position: absolute; inset: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 16px;
+      padding: clamp(20px, 2.2vw, 34px);
+      opacity: 0;
+      transform: translateX(28px) scale(0.982);
+      transition: opacity 380ms cubic-bezier(.22,.68,0,.99), transform 380ms cubic-bezier(.22,.68,0,.99);
+      pointer-events: none;
+      overflow: auto;
+    }
+    .slide.active { opacity: 1; transform: none; pointer-events: auto; z-index: 2; }
+    .slide.out-left { transform: translateX(-28px) scale(0.982); }
+
+    /* ─── Slide header ─── */
+    .slide-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 20px; align-items: start;
+      position: relative; z-index: 2;
+    }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-bottom: 12px;
+      padding: 3px 10px;
+      border: 1px solid rgba(45,212,191,0.25);
+      border-radius: 999px;
+      background: rgba(45,212,191,0.08);
+      color: var(--cyan);
+      font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+    }
+    .eyebrow::before {
+      content: ""; width: 5px; height: 5px; border-radius: 50%;
+      background: var(--cyan); opacity: 0.8;
+    }
+    h1, h2 { line-height: 1.04; letter-spacing: -0.02em; margin-bottom: 10px; }
+    h1 {
+      font-size: clamp(32px, 4.2vw, 58px); font-weight: 900;
+      background: linear-gradient(135deg, #eef2ff 30%, rgba(238,242,255,0.65));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    h2 {
+      font-size: clamp(26px, 3vw, 42px); font-weight: 800;
+      background: linear-gradient(135deg, #eef2ff 40%, rgba(238,242,255,0.6));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .accent { background: linear-gradient(90deg, var(--amber), var(--pink)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .lead {
+      color: var(--muted); font-size: 14.5px; line-height: 1.68; max-width: 900px;
+    }
+    code {
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 0.88em; color: var(--cyan);
+      padding: 1px 5px; border-radius: 4px;
+      background: rgba(45,212,191,0.1);
+      border: 1px solid rgba(45,212,191,0.18);
+    }
+
+    /* ─── Slide badge ─── */
+    .slide-badge {
+      width: 54px; height: 54px; flex-shrink: 0;
+      display: grid; place-items: center;
+      border-radius: 50%;
+      border: 1px solid color-mix(in srgb, var(--accent-color, var(--blue)) 40%, var(--line));
+      background: radial-gradient(circle, color-mix(in srgb, var(--accent-color, var(--blue)) 20%, transparent), transparent 70%);
+      color: var(--accent-color, var(--blue));
+      font-size: 18px; font-weight: 900;
+      box-shadow: 0 0 20px color-mix(in srgb, var(--accent-color, var(--blue)) 20%, transparent);
+    }
+
+    /* ─── Content ─── */
+    .content { position: relative; z-index: 2; min-height: 0; }
+
+    /* ─── Cards base ─── */
+    .simple-card, .mini-card, .route-row, .gate-card,
+    .result-card, .tool-card, .knowledge-card {
+      --card: var(--blue);
+      border: 1px solid color-mix(in srgb, var(--card) 28%, var(--line));
+      border-radius: var(--radius-lg);
+      background:
+        linear-gradient(160deg, color-mix(in srgb, var(--card) 9%, transparent), transparent 50%),
+        rgba(18, 22, 34, 0.9);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.28), 0 1px 0 rgba(255,255,255,0.04) inset;
+      transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+    }
+    .simple-card:hover, .gate-card:hover, .result-card:hover, .knowledge-card:hover {
+      transform: translateY(-3px);
+      border-color: color-mix(in srgb, var(--card) 55%, var(--line));
+      box-shadow: 0 16px 48px rgba(0,0,0,0.36), 0 0 0 1px color-mix(in srgb, var(--card) 20%, transparent);
+    }
+    .simple-card h3, .mini-card h3, .route-row h3,
+    .gate-card h3, .result-card h3, .tool-card h3, .knowledge-card h3 {
+      margin-bottom: 8px;
+      color: color-mix(in srgb, var(--card) 88%, white);
+      font-size: 14.5px; font-weight: 700; line-height: 1.28;
+    }
+    .simple-card p, .mini-card p, .route-row p,
+    .gate-card p, .result-card p, .tool-card p, .knowledge-card p {
+      margin-bottom: 0; color: var(--muted); font-size: 12.5px; line-height: 1.58;
+    }
+    .simple-card { padding: 20px; }
+
+    /* ─── Hero card (slide 1) ─── */
+    .simple-card.hero-simple {
+      position: relative; overflow: hidden; padding: 24px;
+      border-color: rgba(45,212,191,0.35);
+      background:
+        radial-gradient(ellipse 120% 90% at 5% 0%, rgba(45,212,191,0.16), transparent 60%),
+        rgba(15,20,30,0.95);
+      box-shadow: 0 0 0 1px rgba(45,212,191,0.12), 0 24px 64px rgba(0,0,0,0.4);
+    }
+    .hero-simple::after {
+      content: ""; position: absolute; inset: 0;
+      background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.07) 45%, transparent 70%);
+      transform: translateX(-120%);
+      animation: heroSweep 5s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes heroSweep {
+      0%,30% { transform: translateX(-120%); opacity:0; }
+      42%,58% { transform: translateX(10%); opacity:1; }
+      72%,100% { transform: translateX(120%); opacity:0; }
+    }
+    .eyebrow-mini {
+      display: inline-flex; align-items: center; gap: 5px;
+      margin-bottom: 12px; padding: 4px 10px;
+      border: 1px solid rgba(45,212,191,0.35); border-radius: 999px;
+      background: rgba(45,212,191,0.1); color: var(--cyan);
+      font-size: 9.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .idea-line {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px;
+    }
+    .chip {
+      padding: 6px 10px; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+      background: rgba(0,0,0,0.28); color: var(--ink); font-size: 11px; font-weight: 700;
+    }
+    .chip.control {
+      border-color: rgba(45,212,191,0.45); background: rgba(45,212,191,0.1);
+      color: var(--cyan);
+    }
+    .chip.guard {
+      border-color: rgba(74,222,128,0.45); background: rgba(74,222,128,0.1);
+      color: var(--green);
+    }
+    .arrow-mini { color: var(--soft); font-weight: 900; font-size: 13px; }
+
+    /* ─── Rule list ─── */
+    .rule-list { display: grid; gap: 10px; list-style: none; }
+    .rule-list li {
+      display: grid; grid-template-columns: 36px minmax(0,1fr); gap: 10px; align-items: center;
+      padding: 12px 14px;
+      border: 1px solid rgba(255,255,255,0.07); border-radius: var(--radius);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted); font-size: 13px; line-height: 1.5;
+      transition: background 180ms ease, border-color 180ms ease;
+    }
+    .rule-list li:hover { background: rgba(255,255,255,0.055); border-color: rgba(255,255,255,0.12); }
+    .num {
+      width: 34px; height: 34px; display: grid; place-items: center;
+      color: var(--item, var(--cyan));
+      border: 1px solid color-mix(in srgb, var(--item, var(--cyan)) 45%, transparent);
+      border-radius: 9px;
+      background: color-mix(in srgb, var(--item, var(--cyan)) 12%, transparent);
+      font-weight: 800; font-size: 13px; flex-shrink: 0;
+    }
+
+    /* ─── Intro grid ─── */
+    .intro-grid { display: grid; grid-template-columns: 1fr 0.9fr; gap: 16px; align-items: stretch; }
+
+    /* ─── Flow panel (slide 2) ─── */
+    .flow-panel {
+      position: relative; min-height: 460px; display: grid;
+      grid-template-rows: minmax(0,1fr) auto; gap: 14px;
+    }
+    .flow-line {
+      position: relative; min-height: 280px;
+      display: grid; grid-template-columns: repeat(7, minmax(0,1fr));
+      gap: 12px; align-items: start; padding: 48px 0 20px;
+    }
+    .flow-node {
+      --node: var(--blue);
+      position: relative; min-height: 170px; padding: 14px 12px;
+      border: 1px solid color-mix(in srgb, var(--node) 30%, var(--line));
+      border-radius: var(--radius-lg);
+      background:
+        linear-gradient(160deg, color-mix(in srgb, var(--node) 12%, transparent), transparent 55%),
+        var(--surface-2);
+      text-align: center;
+      transition: transform 260ms cubic-bezier(.2,.8,.2,1), border-color 260ms ease, box-shadow 260ms ease;
+    }
+    .flow-node.active-step {
+      transform: translateY(-18px);
+      border-color: color-mix(in srgb, var(--node) 80%, white);
+      box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--node) 35%, transparent),
+        0 0 30px color-mix(in srgb, var(--node) 25%, transparent),
+        0 20px 60px color-mix(in srgb, var(--node) 18%, black);
+    }
+    .flow-node .num { margin: 0 auto 10px; --item: var(--node); }
+    .flow-node h3 { margin-bottom: 7px; color: color-mix(in srgb, var(--node) 88%, white); font-size: 12.5px; font-weight: 700; }
+    .flow-node p { color: var(--muted); font-size: 11px; line-height: 1.45; }
+
+    /* animated marker */
+    .request-marker {
+      --marker-left: 7%;
+      position: absolute; left: var(--marker-left); top: 18px;
+      width: 13px; height: 13px; border-radius: 4px;
+      background: var(--ink); border: 2px solid var(--amber);
+      box-shadow: 0 0 0 3px rgba(251,191,36,0.18), 0 0 18px rgba(251,191,36,0.7);
+      transform: translate(-50%, -50%);
+      transition: left 560ms cubic-bezier(.2,.9,.2,1);
+      z-index: 5;
+    }
+    .request-marker::after {
+      content: "request"; position: absolute; left: 50%; top: -22px;
+      transform: translateX(-50%); color: var(--amber);
+      font-size: 8px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
+    }
+
+    .flow-caption {
+      display: grid; grid-template-columns: auto minmax(0,1fr); gap: 12px; align-items: center;
+      padding: 13px 16px;
+      border: 1px solid rgba(251,191,36,0.22); border-radius: var(--radius);
+      background: rgba(251,191,36,0.07);
+    }
+    .flow-caption strong { color: var(--amber); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.1em; white-space: nowrap; font-weight: 700; }
+    .flow-caption span { color: var(--muted); font-size: 13px; line-height: 1.5; }
+
+    /* ─── Knowledge flow diagram (slide 3) ─── */
+    .knowledge-flow-diagram {
+      --kfd: var(--blue);
+      display: grid; gap: 6px; min-height: 600px; padding: 10px;
+      border: 1px solid color-mix(in srgb, var(--kfd) 28%, var(--line));
+      border-radius: var(--radius-lg);
+      background:
+        linear-gradient(160deg, color-mix(in srgb, var(--kfd) 8%, transparent), transparent 45%),
+        rgba(18,22,34,0.92);
+    }
+    .kfd-row { display: grid; gap: 8px; align-items: stretch; }
+    .kfd-row.chain, .kfd-row.chain.three {
+      display: flex; flex-wrap: nowrap; justify-content: center; align-items: center; gap: 0;
+    }
+    .kfd-node {
+      --node: var(--blue);
+      width: 116px; min-height: 118px; height: auto; justify-self: center;
+      display: grid; grid-template-rows: auto auto auto; gap: 4px; padding: 10px 8px;
+      border: 1px solid color-mix(in srgb, var(--node) 30%, var(--line));
+      border-radius: 12px;
+      background:
+        linear-gradient(160deg, color-mix(in srgb, var(--node) 14%, transparent), transparent 55%),
+        var(--surface-2);
+      box-shadow: 0 10px 28px rgba(0,0,0,0.24);
+      text-align: center; align-content: start;
+      animation: kfdNodePulse 9s ease-in-out infinite;
+      transition: transform 200ms ease;
+    }
+    .kfd-node:hover { transform: translateY(-4px); }
+    .kfd-node h3 { margin-bottom: 0; color: color-mix(in srgb, var(--node) 88%, white); font-size: 10.5px; font-weight: 700; line-height: 1.24; }
+    .kfd-node p  { margin-bottom: 0; color: var(--muted); font-size: 8.5px; line-height: 1.25; }
+    /* ── Icon badge inside each kfd-node ── */
+    .kfd-icon {
+      display: flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px;
+      margin: 0 auto 2px;
+      border-radius: 8px;
+      border: 1px solid color-mix(in srgb, var(--node) 38%, transparent);
+      background: color-mix(in srgb, var(--node) 14%, transparent);
+      box-shadow: 0 0 10px color-mix(in srgb, var(--node) 18%, transparent);
+    }
+    .kfd-icon svg {
+      width: 14px; height: 14px;
+      stroke: color-mix(in srgb, var(--node) 82%, white);
+      stroke-width: 2; fill: none;
+      stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    .kfd-arrow {
+      position: relative; align-self: center; justify-self: center;
+      width: 36px; height: 12px; color: var(--amber);
+      filter: drop-shadow(0 0 8px rgba(251,191,36,0.3)); margin: 0; overflow: visible;
+    }
+    .kfd-arrow::before {
+      content: ""; position: absolute; left: 0; right: 10px; top: 50%;
+      height: 2px; transform: translateY(-50%); border-radius: 999px;
+      background: linear-gradient(90deg, currentColor 0 32%, #fff 45%, currentColor 58%, currentColor 100%);
+      background-size: 220% 100%; animation: kfdArrowFlow 1.4s linear infinite;
+    }
+    .kfd-arrow::after {
+      content: ""; position: absolute; right: 0; top: 50%;
+      transform: translateY(-50%); width: 10px; height: 10px; background: currentColor;
+      clip-path: polygon(0 0, 100% 50%, 0 100%, 26% 50%);
+      animation: kfdArrowHeadPulse 1.4s ease-in-out infinite;
+    }
+    .kfd-arrow.down { width: 10px; height: 24px; margin: 0 auto; }
+    .kfd-arrow.down::before {
+      left: 50%; right: auto; top: 0; width: 2px; height: calc(100% - 8px);
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, currentColor 0 32%, #fff 45%, currentColor 58%, currentColor 100%);
+      background-size: 100% 220%; animation: kfdArrowFlowDown 1.4s linear infinite;
+    }
+    .kfd-arrow.down::after {
+      left: 50%; right: auto; top: auto; bottom: 0;
+      transform: translateX(-50%); width: 10px; height: 10px;
+      background: currentColor; clip-path: polygon(0 0, 50% 100%, 100% 0, 50% 26%);
+    }
+    .kfd-arrow.left::before { left: 12px; right: 0; }
+    .kfd-arrow.left::after { left: 0; right: auto; transform: translateY(-50%); clip-path: polygon(100% 0, 0 50%, 100% 100%, 74% 50%); }
+    .kfd-turn { justify-self: center; width: 10px; height: 24px; margin: 0 auto; }
+
+    @keyframes kfdArrowFlow { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+    @keyframes kfdArrowFlowDown { from { background-position: 0 120%; } to { background-position: 0 -120%; } }
+    @keyframes kfdArrowHeadPulse {
+      0%,100% { opacity: 0.72; } 45%,55% { opacity: 1; filter: drop-shadow(0 0 8px rgba(255,255,255,0.7)); }
+    }
+    @keyframes kfdNodePulse {
+      0%,7%,100% { transform: translateY(0) scale(1); border-color: color-mix(in srgb, var(--node) 30%, var(--line)); box-shadow: 0 10px 28px rgba(0,0,0,0.24); }
+      3.5% { transform: translateY(-6px) scale(1.04); border-color: color-mix(in srgb, var(--node) 75%, white); box-shadow: 0 0 0 1px color-mix(in srgb, var(--node) 30%, transparent), 0 18px 42px color-mix(in srgb, var(--node) 24%, black); }
+    }
+    .knowledge-flow-diagram .kfd-row:nth-of-type(1) .kfd-node:nth-of-type(1) { animation-delay: 0s; }
+    .knowledge-flow-diagram .kfd-row:nth-of-type(1) .kfd-node:nth-of-type(2) { animation-delay: 0.8s; }
+    .knowledge-flow-diagram .kfd-row:nth-of-type(1) .kfd-node:nth-of-type(3) { animation-delay: 1.6s; }
+    .knowledge-flow-diagram .kfd-row:nth-of-type(1) .kfd-node:nth-of-type(4) { animation-delay: 2.4s; }
+    .knowledge-flow-diagram .kfd-row:nth-of-type(2) .kfd-node:nth-of-type(1) { animation-delay: 3.2s; }
+    .knowledge-flow-diagram .kfd-row:nth-of-type(2) .kfd-node:nth-of-type(2) { animation-delay: 4s; }
+    .knowledge-flow-diagram .kfd-row:nth-of-type(2) .kfd-node:nth-of-type(3) { animation-delay: 4.8s; }
+    .knowledge-flow-diagram .kfd-row:nth-of-type(2) .kfd-node:nth-of-type(4) { animation-delay: 5.6s; }
+    .knowledge-flow-diagram .kfd-row:nth-of-type(3) .kfd-node:nth-of-type(1) { animation-delay: 6.4s; }
+    .knowledge-flow-diagram .kfd-row:nth-of-type(3) .kfd-node:nth-of-type(2) { animation-delay: 7.2s; }
+    .knowledge-flow-diagram .kfd-row:nth-of-type(3) .kfd-node:nth-of-type(3) { animation-delay: 8s; }
+
+    .kfd-caption {
+      display: grid; grid-template-columns: auto minmax(0,1fr); gap: 10px; align-items: center;
+      padding: 7px 10px; border: 1px solid rgba(251,191,36,0.22); border-radius: var(--radius);
+      background: rgba(251,191,36,0.07); color: var(--muted); font-size: 10px; line-height: 1.3;
+    }
+    .kfd-caption strong { color: var(--amber); font-size: 9.5px; letter-spacing: 0.09em; text-transform: uppercase; white-space: nowrap; font-weight: 700; }
+
+    /* ─── Brand logo ─── */
+    .brand-logo {
+      width: 24px; height: 24px; flex-shrink: 0;
+      filter: drop-shadow(0 0 5px rgba(45,212,191,0.35));
+    }
+
+    /* ─── Three-phase knowledge diagram (Slide 3 redesign) ─── */
+    .kfd-three-phase {
+      --kfd: var(--blue);
+      display: grid;
+      gap: 0;
+      padding: 10px 14px 10px;
+      border: 1px solid color-mix(in srgb, var(--kfd) 28%, var(--line));
+      border-radius: var(--radius-lg);
+      background:
+        linear-gradient(160deg, color-mix(in srgb, var(--kfd) 8%, transparent), transparent 45%),
+        rgba(18,22,34,0.92);
+    }
+    .kfd-phase-badge {
+      display: inline-flex;
+      align-self: center; justify-self: center;
+      margin: 5px auto;
+      padding: 3px 12px;
+      border: 1px solid rgba(251,191,36,0.3);
+      border-radius: 999px;
+      background: rgba(251,191,36,0.07);
+      color: var(--amber);
+      font-size: 8px; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase;
+    }
+    .kfd-seq-row {
+      display: flex;
+      justify-content: center; align-items: center;
+      flex-wrap: nowrap; gap: 0; padding: 2px 0;
+    }
+    .kfd-sources-row {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0,1fr));
+      gap: 8px; padding: 2px 0;
+    }
+    .kfd-sources-row .kfd-node { width: 100%; min-height: 84px; height: auto; }
+    .kfd-fan-svg { width: 100%; height: 56px; overflow: visible; }
+    /* Fan SVG paths */
+    .kfd-fp {
+      fill: none; stroke-width: 1.8; stroke-linecap: round; opacity: 0.78;
+      stroke-dasharray: 5 4;
+      animation: kfdFanPathFlow 1.6s linear infinite;
+    }
+    .kfd-fp.c-blue   { stroke: var(--blue); }
+    .kfd-fp.c-cyan   { stroke: var(--cyan); }
+    .kfd-fp.c-violet { stroke: var(--violet); }
+    .kfd-fp.c-green  { stroke: var(--green); }
+    .kfd-fp.c-amber  { stroke: var(--amber); }
+    .kfd-fp:nth-child(1) { animation-delay: 0s;    }
+    .kfd-fp:nth-child(2) { animation-delay: 0.20s; }
+    .kfd-fp:nth-child(3) { animation-delay: 0.40s; }
+    .kfd-fp:nth-child(4) { animation-delay: 0.60s; }
+    .kfd-fp:nth-child(5) { animation-delay: 0.80s; }
+    .kfd-fh { opacity: 0.86; }
+    .kfd-fh.c-blue   { fill: var(--blue); }
+    .kfd-fh.c-cyan   { fill: var(--cyan); }
+    .kfd-fh.c-violet { fill: var(--violet); }
+    .kfd-fh.c-green  { fill: var(--green); }
+    .kfd-fh.c-amber  { fill: var(--amber); }
+    @keyframes kfdFanPathFlow { from { stroke-dashoffset: 54; } to { stroke-dashoffset: 0; } }
+    .kfd-three-phase .kfd-caption { margin-top: 5px; }
+    @media (max-width: 1180px) {
+      .kfd-sources-row { grid-template-columns: repeat(3, minmax(0,1fr)); }
+      .kfd-fan-svg { height: 70px; }
+    }
+    @media (max-width: 760px) {
+      .kfd-sources-row { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .kfd-seq-row { flex-wrap: wrap; gap: 6px; }
+      .kfd-fan-svg { display: none; }
+    }
+
+    /* ─── Tree slide (slide 4) ─── */
+    .tree-slide { gap: 10px; }
+    .tree-slide .slide-header { gap: 12px; }
+    .tree-slide h2 { font-size: clamp(24px, 2.6vw, 36px); margin-bottom: 6px; }
+    .tree-slide .lead { font-size: 13px; line-height: 1.5; }
+    .tree-layout { display: grid; min-height: 0; }
+    .tree-flow {
+      --tree: var(--blue);
+      position: relative; min-height: 0; padding: 14px 16px;
+      border: 1px solid color-mix(in srgb, var(--tree) 28%, var(--line));
+      border-radius: var(--radius-lg);
+      background:
+        linear-gradient(160deg, color-mix(in srgb, var(--tree) 8%, transparent), transparent 45%),
+        rgba(18,22,34,0.92);
+      overflow: hidden;
+    }
+    .tree-main { display: grid; gap: 14px; position: relative; z-index: 2; }
+    .tree-item, .tree-branch-card {
+      --tree-card: var(--blue);
+      position: relative; overflow: hidden; padding: 12px 14px;
+      border: 1px solid color-mix(in srgb, var(--tree-card) 28%, var(--line));
+      border-radius: var(--radius-lg);
+      background:
+        linear-gradient(160deg, color-mix(in srgb, var(--tree-card) 10%, transparent), transparent 50%),
+        var(--surface-2);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.22);
+      transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+    }
+    .tree-item:hover, .tree-branch-card:hover {
+      transform: translateX(5px);
+      border-color: color-mix(in srgb, var(--tree-card) 55%, var(--line));
+    }
+    .tree-item.active-tree, .tree-branch-card.active-tree {
+      transform: translateX(10px);
+      border-color: color-mix(in srgb, var(--tree-card) 70%, white);
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--tree-card) 28%, transparent), 0 20px 48px color-mix(in srgb, var(--tree-card) 18%, black);
+      animation: treeCardBlink 950ms ease-in-out infinite;
+    }
+    .tree-item.active-tree::before, .tree-branch-card.active-tree::before {
+      content: ""; position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--tree-card) 18%, white) 50%, transparent 100%);
+      opacity: 0; animation: treeCardSweep 1250ms ease-in-out infinite; pointer-events: none;
+    }
+    .tree-item.active-tree::after, .tree-branch-card.active-tree::after {
+      content: "›"; position: absolute; top: 50%; left: -20px;
+      width: 22px; height: 22px; display: grid; place-items: center;
+      transform: translateY(-50%); border-radius: 999px;
+      border: 1px solid rgba(251,191,36,0.5); background: rgba(251,191,36,0.18);
+      color: var(--amber); font-size: 16px; font-weight: 900;
+      box-shadow: 0 0 16px rgba(251,191,36,0.5);
+      animation: treeArrowRun 1050ms linear infinite; pointer-events: none; z-index: 3;
+    }
+    .tree-item h3, .tree-branch-card h3 {
+      position: relative; z-index: 2; margin-bottom: 4px;
+      color: color-mix(in srgb, var(--tree-card) 88%, white); font-size: 13px; font-weight: 700; line-height: 1.3;
+    }
+    .tree-item p, .tree-branch-card p {
+      position: relative; z-index: 2; margin-bottom: 0;
+      color: var(--muted); font-size: 11.5px; line-height: 1.4;
+    }
+    .tree-branches { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
+    .tree-branch-card { min-height: 90px; }
+    .tree-caption {
+      display: grid; grid-template-columns: auto minmax(0,1fr); gap: 9px; align-items: center;
+      margin-top: 8px; padding: 8px 11px;
+      border: 1px solid rgba(251,191,36,0.22); border-radius: var(--radius);
+      background: rgba(251,191,36,0.07);
+    }
+    .tree-caption strong { color: var(--amber); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; white-space: nowrap; font-weight: 700; }
+    .tree-caption span { color: var(--muted); font-size: 11px; line-height: 1.35; }
+
+    /* slide 4 / 8 / 9 overrides for readability */
+    .slide[aria-labelledby="slide-4-title"] .tree-flow,
+    .slide[aria-labelledby="slide-8-title"] .tree-flow,
+    .slide[aria-labelledby="slide-9-title"] .tree-flow { min-height: 800px; max-height: none; overflow: hidden; }
+    .slide[aria-labelledby="slide-4-title"] .tree-main,
+    .slide[aria-labelledby="slide-8-title"] .tree-main,
+    .slide[aria-labelledby="slide-9-title"] .tree-main { gap: 14px; }
+    .slide[aria-labelledby="slide-4-title"] .tree-branches,
+    .slide[aria-labelledby="slide-8-title"] .tree-branches,
+    .slide[aria-labelledby="slide-9-title"] .tree-branches { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+    .slide[aria-labelledby="slide-4-title"] .tree-item.active-tree,
+    .slide[aria-labelledby="slide-4-title"] .tree-branch-card.active-tree,
+    .slide[aria-labelledby="slide-8-title"] .tree-item.active-tree,
+    .slide[aria-labelledby="slide-8-title"] .tree-branch-card.active-tree,
+    .slide[aria-labelledby="slide-9-title"] .tree-item.active-tree,
+    .slide[aria-labelledby="slide-9-title"] .tree-branch-card.active-tree { transform: none; animation-duration: 2000ms; }
+    .slide[aria-labelledby="slide-4-title"] .tree-item.active-tree::before,
+    .slide[aria-labelledby="slide-4-title"] .tree-branch-card.active-tree::before,
+    .slide[aria-labelledby="slide-4-title"] .tree-item.active-tree::after,
+    .slide[aria-labelledby="slide-4-title"] .tree-branch-card.active-tree::after,
+    .slide[aria-labelledby="slide-8-title"] .tree-item.active-tree::before,
+    .slide[aria-labelledby="slide-8-title"] .tree-branch-card.active-tree::before,
+    .slide[aria-labelledby="slide-8-title"] .tree-item.active-tree::after,
+    .slide[aria-labelledby="slide-8-title"] .tree-branch-card.active-tree::after,
+    .slide[aria-labelledby="slide-9-title"] .tree-item.active-tree::before,
+    .slide[aria-labelledby="slide-9-title"] .tree-branch-card.active-tree::before,
+    .slide[aria-labelledby="slide-9-title"] .tree-item.active-tree::after,
+    .slide[aria-labelledby="slide-9-title"] .tree-branch-card.active-tree::after { display: none; animation: none; }
+
+    @keyframes treeCardBlink {
+      0%,100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--tree-card) 28%, transparent), 0 20px 48px color-mix(in srgb, var(--tree-card) 18%, black); }
+      50% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--tree-card) 55%, white), 0 0 22px color-mix(in srgb, var(--tree-card) 40%, transparent), 0 24px 58px color-mix(in srgb, var(--tree-card) 22%, black); }
+    }
+    @keyframes treeCardSweep {
+      0% { transform: translateX(-100%); opacity: 0; }
+      25% { opacity: 0.18; } 75% { opacity: 0.18; }
+      100% { transform: translateX(100%); opacity: 0; }
+    }
+    @keyframes treeArrowRun {
+      0% { left: -20px; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; }
+      100% { left: calc(100% - 10px); opacity: 0; }
+    }
+
+    /* ─── Route rows (slide 5) ─── */
+    .route-stack { display: grid; gap: 10px; }
+    .route-row {
+      --card: var(--cyan);
+      display: grid; grid-template-columns: 230px minmax(0,1fr); gap: 14px; align-items: center;
+      min-height: 76px; padding: 12px 14px;
+    }
+    .route-row:nth-child(1) { --card: var(--cyan); }
+    .route-row:nth-child(2) { --card: var(--pink); }
+    .route-row:nth-child(3) { --card: var(--green); }
+    .route-row:nth-child(4) { --card: var(--blue); }
+    .route-row:nth-child(5) { --card: var(--amber); }
+    .route-row:nth-child(6) { --card: var(--red); }
+    .route-row h3 { margin-bottom: 0; font-size: 13px; }
+    .route-tokens { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .route-token {
+      position: relative; padding: 6px 10px;
+      border: 1px solid var(--line); border-radius: 7px;
+      background: var(--surface-3); color: var(--muted);
+      font-size: 11px; line-height: 1.25; white-space: nowrap;
+      transition: border-color 160ms ease;
+    }
+    .route-token:not(:last-child)::after {
+      content: "›"; position: absolute; right: -14px; top: 50%;
+      transform: translateY(-50%); color: var(--soft); font-weight: 900;
+    }
+    .route-token.ok { color: var(--green); border-color: rgba(74,222,128,0.35); background: rgba(74,222,128,0.08); }
+    .route-token.ask { color: var(--amber); border-color: rgba(251,191,36,0.35); background: rgba(251,191,36,0.08); }
+    .route-token.stop { color: var(--red); border-color: rgba(248,113,113,0.35); background: rgba(248,113,113,0.08); }
+
+    /* ─── Gate cards (slide 6) ─── */
+    .gate-card { --card: var(--amber); min-height: 178px; padding: 16px; }
+    .gate-card.stop { --card: var(--red); }
+    .gate-label {
+      display: inline-flex; margin-bottom: 10px; padding: 3px 8px;
+      color: var(--card); border: 1px solid color-mix(in srgb, var(--card) 45%, transparent);
+      border-radius: 6px; background: color-mix(in srgb, var(--card) 10%, transparent);
+      font-size: 9.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+    }
+
+    /* ─── Result cards (slide 7) ─── */
+    .result-card { min-height: 164px; padding: 16px; }
+    .result-card:nth-child(1) { --card: var(--green); }
+    .result-card:nth-child(2) { --card: var(--blue); }
+    .result-card:nth-child(3) { --card: var(--cyan); }
+    .result-card:nth-child(4) { --card: var(--amber); }
+    .result-card:nth-child(5) { --card: var(--red); }
+    .result-card:nth-child(6) { --card: var(--violet); }
+    .result-icon {
+      width: 36px; height: 36px; display: grid; place-items: center;
+      margin-bottom: 10px; border-radius: 9px; font-size: 17px;
+      border: 1px solid color-mix(in srgb, var(--card) 40%, transparent);
+      background: color-mix(in srgb, var(--card) 12%, transparent);
+    }
+
+    /* ─── Grid helpers ─── */
+    .grid { display: grid; gap: 14px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .grid.four { grid-template-columns: repeat(4, minmax(0,1fr)); }
+    .grid.five { grid-template-columns: repeat(5, minmax(0,1fr)); }
+
+    /* ─── Routing board (used internally) ─── */
+    .routing-board {
+      --route: var(--blue); position: relative;
+      display: grid; grid-template-rows: auto 26px auto 26px auto;
+      gap: 7px; min-height: 380px; padding: 10px;
+      border: 1px solid color-mix(in srgb, var(--route) 28%, var(--line));
+      border-radius: var(--radius-lg);
+      background: linear-gradient(160deg, color-mix(in srgb, var(--route) 8%, transparent), transparent 42%), rgba(18,22,34,0.92);
+    }
+    .routing-row { position: relative; z-index: 2; display: grid; gap: 12px; align-items: stretch; }
+    .routing-row.three { grid-template-columns: repeat(3,minmax(0,1fr)); }
+    .routing-row.five { grid-template-columns: repeat(5,minmax(0,1fr)); }
+    .routing-row.four { grid-template-columns: repeat(4,minmax(0,1fr)); }
+    .routing-row.two { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .routing-node {
+      --node: var(--blue); min-height: 74px; padding: 8px 10px;
+      border: 1px solid color-mix(in srgb, var(--node) 30%, var(--line));
+      border-radius: var(--radius-lg);
+      background: linear-gradient(160deg, color-mix(in srgb, var(--node) 12%, transparent), transparent 52%), var(--surface-2);
+    }
+    .routing-node h3 { margin-bottom: 5px; color: color-mix(in srgb, var(--node) 88%, white); font-size: 12px; font-weight: 700; }
+    .routing-node p { color: var(--muted); font-size: 9.8px; line-height: 1.3; }
+    .connector { position: relative; z-index: 1; height: 26px; overflow: visible; }
+    .connector::before {
+      content: ""; position: absolute; left: 8%; right: 8%; top: 50%; height: 2px; border-radius: 999px;
+      background: linear-gradient(90deg, var(--green), var(--cyan), var(--blue), var(--amber), var(--pink)); opacity: 0.4;
+    }
+    .connector::after {
+      content: ""; position: absolute; left: 8%; top: calc(50% - 3px);
+      width: 50px; height: 6px; border-radius: 999px;
+      background: var(--ink); box-shadow: 0 0 18px var(--amber), 0 0 34px rgba(251,191,36,0.55);
+      animation: connectorRun 2.8s linear infinite;
+    }
+    @keyframes connectorRun {
+      from { transform: translateX(0); opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; }
+      to { transform: translateX(calc(84vw - 150px)); opacity: 0; }
+    }
+    .routing-note {
+      position: relative; z-index: 2;
+      display: grid; grid-template-columns: auto minmax(0,1fr); gap: 10px; align-items: center;
+      padding: 7px 10px;
+      border: 1px solid rgba(251,191,36,0.22); border-radius: var(--radius);
+      background: rgba(251,191,36,0.07); color: var(--muted); font-size: 11px; line-height: 1.3;
+    }
+    .routing-note strong { color: var(--amber); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; font-weight: 700; }
+    .path { display: block; margin-top: 8px; color: var(--soft); font-family: 'JetBrains Mono', monospace; font-size: 10.5px; line-height: 1.35; word-break: break-word; }
+
+    /* ─── Controls ─── */
+    .controls {
+      position: relative; display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; min-height: 52px; padding: 10px 16px;
+      border: 1px solid rgba(255,255,255,0.07); border-radius: var(--radius-lg);
+      background: var(--glass); backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .nav-group { display: flex; gap: 8px; align-items: center; }
+    .nav-button {
+      width: 40px; height: 38px;
+      border: 1px solid var(--line); border-radius: 9px;
+      background: var(--surface-2); color: var(--ink);
+      font-size: 17px; font-weight: 900; cursor: pointer;
+      transition: border-color 150ms ease, transform 150ms ease, background 150ms ease, box-shadow 150ms ease;
+    }
+    .nav-button:hover {
+      border-color: var(--blue); background: rgba(77,159,255,0.12);
+      transform: translateY(-2px); box-shadow: 0 6px 20px rgba(77,159,255,0.2);
+    }
+    .nav-button:active { transform: translateY(0); }
+    .nav-button:disabled { color: var(--soft); cursor: not-allowed; opacity: 0.45; transform: none; box-shadow: none; }
+    .dots { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; flex: 1; }
+    .dot {
+      width: 28px; height: 7px; border: 0; border-radius: 999px;
+      background: var(--line); cursor: pointer;
+      transition: width 200ms ease, background 200ms ease, box-shadow 200ms ease;
+    }
+    .dot.active { width: 44px; background: var(--amber); box-shadow: 0 0 12px rgba(251,191,36,0.45); }
+    .dot:hover:not(.active) { background: var(--soft); }
+    .file-path { color: var(--soft); font-size: 10px; font-family: 'JetBrains Mono', monospace; font-weight: 500; white-space: nowrap; }
+    .progress {
+      position: absolute; left: 0; bottom: -1px; height: 2px;
+      width: var(--progress, 14.28%);
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--green), var(--cyan), var(--amber));
+      transition: width 260ms ease;
+      box-shadow: 0 0 8px rgba(251,191,36,0.4);
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 1180px) {
+      body { overflow: auto; }
+      .deck { height: auto; min-height: calc(100vh - 24px); width: min(100vw - 24px, 920px); margin: 12px auto; }
+      .slides { min-height: 760px; }
+      .intro-grid, .grid.four, .grid.five { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .flow-line { grid-template-columns: repeat(2,minmax(0,1fr)); padding-top: 10px; }
+      .tree-branches, .routing-row.five, .routing-row.four, .routing-row.three { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .kfd-row.chain, .kfd-row.chain.three { flex-direction: column; align-items: center; }
+      .knowledge-flow-diagram { min-height: 840px; }
+      .kfd-row.chain .kfd-arrow.right, .kfd-row.chain .kfd-arrow.left,
+      .kfd-row.chain.three .kfd-arrow.right, .kfd-row.chain.three .kfd-arrow.left {
+        width: 14px; height: 34px; margin: 2px 0;
+      }
+      .kfd-row.chain .kfd-arrow.right::before, .kfd-row.chain .kfd-arrow.left::before,
+      .kfd-row.chain.three .kfd-arrow.right::before, .kfd-row.chain.three .kfd-arrow.left::before {
+        left: 50%; right: auto; top: 0; width: 2px; height: calc(100% - 8px); transform: translateX(-50%);
+      }
+      .kfd-row.chain .kfd-arrow.right::after, .kfd-row.chain .kfd-arrow.left::after,
+      .kfd-row.chain.three .kfd-arrow.right::after, .kfd-row.chain.three .kfd-arrow.left::after {
+        left: 50%; right: auto; top: auto; bottom: 0; transform: translateX(-50%);
+        clip-path: polygon(0 0, 50% 100%, 100% 0, 50% 26%);
+      }
+      .tree-flow { min-height: 620px; }
+      .request-marker { display: none; }
+      .route-row { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 760px) {
+      .deck { width: calc(100vw - 16px); margin: 8px auto; }
+      .topbar, .controls { align-items: flex-start; flex-wrap: wrap; }
+      .keyboard-hint { display: none; }
+      .slide { padding: 16px; }
+      .slide-header { grid-template-columns: 1fr; }
+      .slide-badge { display: none; }
+      .intro-grid, .grid.two, .grid.three, .grid.four, .grid.five,
+      .flow-line, .tree-branches, .kfd-row.chain, .kfd-row.chain.three,
+      .routing-row.five, .routing-row.four, .routing-row.three, .routing-row.two { grid-template-columns: 1fr; }
+      .connector { display: none; }
+      .route-token { white-space: normal; }
+      .route-token:not(:last-child)::after { display: none; }
+      .dots { order: 3; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <!-- ambient orbs -->
+  <div class="bg-orbs" aria-hidden="true">
+    <span></span><span></span><span></span>
+  </div>
+
+  <main class="deck" aria-label="Jira request flow slide deck">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <svg class="brand-logo" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="9" y="9" width="10" height="10" rx="2" fill="rgba(45,212,191,0.14)" stroke="rgba(45,212,191,0.85)" stroke-width="1.5"/>
+          <circle cx="14" cy="14" r="2.5" fill="rgba(45,212,191,0.9)"/>
+          <line x1="14" y1="3" x2="14" y2="9" stroke="rgba(45,212,191,0.85)" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="14" y1="19" x2="14" y2="25" stroke="rgba(45,212,191,0.85)" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="3" y1="14" x2="9" y2="14" stroke="rgba(77,159,255,0.85)" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="19" y1="14" x2="25" y2="14" stroke="rgba(77,159,255,0.85)" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="14" cy="3" r="2" fill="rgba(167,139,250,0.9)"/>
+          <circle cx="14" cy="25" r="2" fill="rgba(74,222,128,0.9)"/>
+          <circle cx="3" cy="14" r="2" fill="rgba(77,159,255,0.9)"/>
+          <circle cx="25" cy="14" r="2" fill="rgba(251,191,36,0.9)"/>
+        </svg>
+        Automation docs&nbsp;/&nbsp;Jira MCP routing
+      </div>
+      <div class="topbar-right">
+        <div class="keyboard-hint">
+          <span class="key">←</span>
+          <span class="key">→</span>
+          <span>navigate</span>
+        </div>
+        <div class="slide-count" id="slideCount">Slide 1 of 7</div>
+      </div>
+    </header>
+
+    <section class="slides" id="slides">
+
+      <!-- ── Slide 1 ── -->
+      <article class="slide active" style="--accent-color:var(--amber);" aria-labelledby="slide-1-title">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Overview</div>
+            <h1 id="slide-1-title">Jira Request Flow with <span class="accent">MCP guardrails and grounded automation</span></h1>
+            <p class="lead">
+              Copilot or Windsurf never writes to Jira directly. Every request goes through <code>jira-mcp</code>,
+              which gathers context, checks guardrails, and returns one controlled outcome: answer, proposal, approved update, or explicit block reason.
+            </p>
+          </div>
+          <div class="slide-badge">1</div>
+        </header>
+        <div class="content intro-grid">
+          <div class="simple-card hero-simple" style="--card:var(--cyan);">
+            <span class="eyebrow-mini">Core message</span>
+            <h3>Simple idea</h3>
+            <p>AI handles conversation. MCP handles control. Jira writes happen only when MCP rules allow them.</p>
+            <div class="idea-line" aria-label="Simple idea pipeline">
+              <span class="chip">AI conversation</span>
+              <span class="arrow-mini">›</span>
+              <span class="chip control">MCP control</span>
+              <span class="arrow-mini">›</span>
+              <span class="chip guard">approved Jira write only</span>
+            </div>
+          </div>
+          <ul class="rule-list">
+            <li><span class="num" style="--item:var(--cyan);">1</span><span>Understand intent.</span></li>
+            <li><span class="num" style="--item:var(--blue);">2</span><span>Route to the correct <code>jira-mcp</code> tool path.</span></li>
+            <li><span class="num" style="--item:var(--amber);">3</span><span>Load context and enforce guardrails before write actions.</span></li>
+            <li><span class="num" style="--item:var(--green);">4</span><span>Return a clear, traceable outcome.</span></li>
+          </ul>
+        </div>
+      </article>
+
+      <!-- ── Slide 2 ── -->
+      <article class="slide" style="--accent-color:var(--green);" aria-labelledby="slide-2-title">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Animated request path</div>
+            <h2 id="slide-2-title">How the request moves step by step</h2>
+            <p class="lead">The marker shows one request moving through the controlled pipeline from intent to final outcome.</p>
+          </div>
+          <div class="slide-badge">2</div>
+        </header>
+        <div class="content flow-panel">
+          <div class="flow-line" id="flowLine">
+            <div class="request-marker" id="requestMarker"></div>
+            <article class="flow-node active-step" style="--node:var(--green);" data-flow-step="0">
+              <span class="num">1</span>
+              <h3>User Request</h3>
+              <p>User asks to inspect, plan, update, or manage subtasks.</p>
+            </article>
+            <article class="flow-node" style="--node:var(--violet);" data-flow-step="1">
+              <span class="num">2</span>
+              <h3>Copilot / Windsurf</h3>
+              <p>Interprets intent and selects an allowed MCP route.</p>
+            </article>
+            <article class="flow-node" style="--node:var(--cyan);" data-flow-step="2">
+              <span class="num">3</span>
+              <h3>MCP Server</h3>
+              <p><code>jira-mcp</code> orchestrates tool execution safely.</p>
+            </article>
+            <article class="flow-node" style="--node:var(--blue);" data-flow-step="3">
+              <span class="num">4</span>
+              <h3>Knowledge</h3>
+              <p>Jira, Feature, Confluence, codebase, and memory gathered.</p>
+            </article>
+            <article class="flow-node" style="--node:var(--amber);" data-flow-step="4">
+              <span class="num">5</span>
+              <h3>Guardrails</h3>
+              <p>Checks context, sprint, approval, and policy conditions.</p>
+            </article>
+            <article class="flow-node" style="--node:var(--pink);" data-flow-step="5">
+              <span class="num">6</span>
+              <h3>Jira Action</h3>
+              <p>Executes read, preview, apply, or block path.</p>
+            </article>
+            <article class="flow-node" style="--node:var(--green);" data-flow-step="6">
+              <span class="num">7</span>
+              <h3>Result</h3>
+              <p>Returns readout, proposal, applied change, or stop reason.</p>
+            </article>
+          </div>
+          <div class="flow-caption">
+            <strong id="flowStepLabel">Step 1</strong>
+            <span id="flowStepText">Request starts with the user.</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- ── Slide 3 ── -->
+      <article class="slide" style="--accent-color:var(--blue);" aria-labelledby="slide-3-title">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Knowledge routing diagram</div>
+            <h2 id="slide-3-title">How the request gathers knowledge</h2>
+            <p class="lead">Before any write, MCP queries all 5 sources <strong style="color:var(--cyan);">in parallel</strong>, merges them into one grounded context, then validates guardrails before responding.</p>
+          </div>
+          <div class="slide-badge">3</div>
+        </header>
+        <div class="content">
+          <div class="kfd-three-phase" aria-label="Knowledge flow diagram">
+
+            <!-- Phase 1: sequential entry -->
+            <div class="kfd-phase-badge">Phase 1 — Request enters sequentially</div>
+            <div class="kfd-seq-row">
+              <article class="kfd-node" style="--node:var(--green); animation-duration:11s; animation-delay:0s;">
+                <div class="kfd-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 20v-2a8 8 0 0 1 16 0v2"/></svg></div>
+                <h3>1. User</h3><p>Request enters the controlled flow</p>
+              </article>
+              <span class="kfd-arrow" aria-hidden="true"></span>
+              <article class="kfd-node" style="--node:var(--violet); animation-duration:11s; animation-delay:0.8s;">
+                <div class="kfd-icon"><svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1"/><path d="M7 9H3M7 12H3M7 15H3M17 9h4M17 12h4M17 15h4M9 7V3M12 7V3M15 7V3M9 17v4M12 17v4M15 17v4"/></svg></div>
+                <h3>2. Copilot</h3><p>Intent classified, MCP tool selected</p>
+              </article>
+              <span class="kfd-arrow" aria-hidden="true"></span>
+              <article class="kfd-node" style="--node:var(--cyan); animation-duration:11s; animation-delay:1.6s;">
+                <div class="kfd-icon"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 6h.01M6 18h.01"/></svg></div>
+                <h3>3. MCP Server</h3><p>Orchestrates parallel knowledge gather</p>
+              </article>
+            </div>
+
+            <!-- Fan-out SVG: MCP → 5 sources (top-center → 5 column bottoms) -->
+            <svg class="kfd-fan-svg" viewBox="0 0 100 56" preserveAspectRatio="none" aria-hidden="true">
+              <path class="kfd-fp c-blue"   d="M50,2 C50,22 10,36 10,54"/>
+              <path class="kfd-fp c-cyan"   d="M50,2 C50,22 30,36 30,54"/>
+              <path class="kfd-fp c-violet" d="M50,2 L50,54"/>
+              <path class="kfd-fp c-green"  d="M50,2 C50,22 70,36 70,54"/>
+              <path class="kfd-fp c-amber"  d="M50,2 C50,22 90,36 90,54"/>
+              <polygon class="kfd-fh c-blue"   points="10,55 7.5,49.5 12.5,49.5"/>
+              <polygon class="kfd-fh c-cyan"   points="30,55 27.5,49.5 32.5,49.5"/>
+              <polygon class="kfd-fh c-violet" points="50,55 47.5,49.5 52.5,49.5"/>
+              <polygon class="kfd-fh c-green"  points="70,55 67.5,49.5 72.5,49.5"/>
+              <polygon class="kfd-fh c-amber"  points="90,55 87.5,49.5 92.5,49.5"/>
+            </svg>
+
+            <!-- Phase 2: parallel knowledge sources -->
+            <div class="kfd-phase-badge">Phase 2 — MCP gathers from all 5 sources in parallel</div>
+            <div class="kfd-sources-row">
+              <article class="kfd-node" style="--node:var(--blue);   animation-duration:11s; animation-delay:2.8s;">
+                <!-- Jira: kanban board / four squares -->
+                <div class="kfd-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg></div>
+                <h3>4. Jira</h3><p>Story, status, comments, links, subtasks</p>
+              </article>
+              <article class="kfd-node" style="--node:var(--cyan);   animation-duration:11s; animation-delay:3.2s;">
+                <!-- Feature: stacked layers -->
+                <div class="kfd-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></div>
+                <h3>5. Feature</h3><p>Parent feature and sibling stories</p>
+              </article>
+              <article class="kfd-node" style="--node:var(--violet); animation-duration:11s; animation-delay:3.6s;">
+                <!-- Confluence: open book -->
+                <div class="kfd-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+                <h3>6. Confluence</h3><p>ADRs and architecture notes</p>
+              </article>
+              <article class="kfd-node" style="--node:var(--green);  animation-duration:11s; animation-delay:4.0s;">
+                <!-- Codebase: code brackets -->
+                <div class="kfd-icon"><svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
+                <h3>7. Codebase</h3><p>Implementation grounding</p>
+              </article>
+              <article class="kfd-node" style="--node:var(--amber);  animation-duration:11s; animation-delay:4.4s;">
+                <!-- Memory: database cylinder -->
+                <div class="kfd-icon"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></div>
+                <h3>8. Memory</h3><p>Past runs and checkpoints</p>
+              </article>
+            </div>
+
+            <!-- Fan-in SVG: 5 sources → Merge (5 column tops → center bottom) -->
+            <svg class="kfd-fan-svg kfd-fanin" viewBox="0 0 100 56" preserveAspectRatio="none" aria-hidden="true">
+              <path class="kfd-fp c-blue"   d="M10,2 C10,22 50,36 50,54"/>
+              <path class="kfd-fp c-cyan"   d="M30,2 C30,22 50,36 50,54"/>
+              <path class="kfd-fp c-violet" d="M50,2 L50,54"/>
+              <path class="kfd-fp c-green"  d="M70,2 C70,22 50,36 50,54"/>
+              <path class="kfd-fp c-amber"  d="M90,2 C90,22 50,36 50,54"/>
+              <polygon class="kfd-fh c-cyan" points="50,56 46.5,50 53.5,50"/>
+            </svg>
+
+            <!-- Phase 3: merge → guardrails → result -->
+            <div class="kfd-phase-badge">Phase 3 — Ground, validate, respond</div>
+            <div class="kfd-seq-row">
+              <article class="kfd-node" style="--node:var(--blue);  animation-duration:11s; animation-delay:5.6s;">
+                <!-- Merge: git-merge / converge -->
+                <div class="kfd-icon"><svg viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg></div>
+                <h3>9. Merge</h3><p>Combined into one unified context</p>
+              </article>
+              <span class="kfd-arrow" aria-hidden="true"></span>
+              <article class="kfd-node" style="--node:var(--amber); animation-duration:11s; animation-delay:6.4s;">
+                <!-- Guardrails: shield -->
+                <div class="kfd-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+                <h3>10. Guardrails</h3><p>Validate required gates</p>
+              </article>
+              <span class="kfd-arrow" aria-hidden="true"></span>
+              <article class="kfd-node" style="--node:var(--green); animation-duration:11s; animation-delay:7.2s;">
+                <!-- Result: check in circle -->
+                <div class="kfd-icon"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+                <h3>11. Result</h3><p>Safe response or clear block</p>
+              </article>
+            </div>
+
+            <div class="kfd-caption">
+              <strong>Flow Direction</strong>
+              <span>Request enters sequentially → MCP queries all 5 sources in parallel → merges into one grounded context → guardrails validate → one controlled output returned.</span>
+            </div>
+
+          </div>
+        </div>
+      </article>
+
+      <!-- ── Slide 4 ── -->
+      <article class="slide tree-slide" style="--accent-color:var(--pink);" aria-labelledby="slide-4-title">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Jira action routing diagram</div>
+            <h2 id="slide-4-title">How Jira actions are routed</h2>
+            <p class="lead">MCP routes each request to the right Jira path and enforces preview + approval before any write.</p>
+          </div>
+          <div class="slide-badge">4</div>
+        </header>
+        <div class="content tree-layout">
+          <div class="tree-flow" style="--tree:var(--pink);" aria-label="Jira action flow tree diagram">
+            <div class="tree-main">
+              <article class="tree-item active-tree" data-tree-name="actions" data-tree-step="0" style="--tree-card:var(--green);">
+                <h3>1. Classify the user request</h3>
+                <p>Identify read-only, planning, create/update, or subtask intent.</p>
+              </article>
+              <section class="tree-branches" data-tree-name="actions" data-tree-step="1">
+                <article class="tree-branch-card" style="--tree-card:var(--blue);">
+                  <h3>Read-only route</h3>
+                  <p>Use <code>jira_read_story</code> and <code>jira_analyze_story</code> for no-write responses.</p>
+                </article>
+                <article class="tree-branch-card" style="--tree-card:var(--cyan);">
+                  <h3>Planning route</h3>
+                  <p>Use <code>jira_feature_context</code> and <code>jira_bootstrap_feature_stories</code> for plan previews.</p>
+                </article>
+                <article class="tree-branch-card" style="--tree-card:var(--pink);">
+                  <h3>Create / update route</h3>
+                  <p>Use <code>jira_refine_story</code> and <code>jira_create_story</code> after approval gates.</p>
+                </article>
+                <article class="tree-branch-card" style="--tree-card:var(--amber);">
+                  <h3>Subtask route</h3>
+                  <p>Use <code>jira_plan_subtasks</code> and <code>jira_manage_subtasks</code> for controlled subtask actions.</p>
+                </article>
+              </section>
+              <article class="tree-item" data-tree-name="actions" data-tree-step="2" style="--tree-card:var(--cyan);">
+                <h3>3. Read-only requests return immediately</h3>
+                <p>If no write is needed, return response directly.</p>
+              </article>
+              <article class="tree-item" data-tree-name="actions" data-tree-step="3" style="--tree-card:var(--amber);">
+                <h3>4. Write requests enter preview gate</h3>
+                <p>Show exact payload and wait for explicit approval.</p>
+              </article>
+              <article class="tree-item" data-tree-name="actions" data-tree-step="4" style="--tree-card:var(--red);">
+                <h3>5. Safety gate blocks incomplete writes</h3>
+                <p>Block if required context, sprint, or approval is missing.</p>
+              </article>
+              <article class="tree-item" data-tree-name="actions" data-tree-step="5" style="--tree-card:var(--green);">
+                <h3>6. Return a controlled final result</h3>
+                <p>Return success result, proposal, applied update, or stop reason.</p>
+              </article>
+            </div>
+            <div class="tree-caption">
+              <strong id="actionTreeLabel">Action Step 1</strong>
+              <span id="actionTreeText">MCP first classifies what the user wants to do in Jira.</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- ── Slide 5 ── -->
+      <article class="slide" style="--accent-color:var(--cyan);" aria-labelledby="slide-5-title">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Common routes</div>
+            <h2 id="slide-5-title">Different user requests take different routes</h2>
+            <p class="lead">Common request patterns and their safe execution paths.</p>
+          </div>
+          <div class="slide-badge">5</div>
+        </header>
+        <div class="content route-stack">
+          <div class="route-row">
+            <h3>Inspect or explain a story</h3>
+            <div class="route-tokens">
+              <span class="route-token">User gives Jira key</span>
+              <span class="route-token">jira_read_story</span>
+              <span class="route-token">jira_analyze_story</span>
+              <span class="route-token ok">Summary + gaps + AC suggestions</span>
+            </div>
+          </div>
+          <div class="route-row">
+            <h3>Refine or update a story</h3>
+            <div class="route-tokens">
+              <span class="route-token">Read story</span>
+              <span class="route-token">Feature context</span>
+              <span class="route-token">Codebase scan</span>
+              <span class="route-token">Preview</span>
+              <span class="route-token ask">User approves exact payload</span>
+              <span class="route-token ok">Apply update</span>
+            </div>
+          </div>
+          <div class="route-row">
+            <h3>Create story under Feature</h3>
+            <div class="route-tokens">
+              <span class="route-token">Feature key</span>
+              <span class="route-token">Feature context</span>
+              <span class="route-token">Codebase scan</span>
+              <span class="route-token">Sprint resolved</span>
+              <span class="route-token ask">Preview + approval</span>
+              <span class="route-token ok">Story created</span>
+            </div>
+          </div>
+          <div class="route-row">
+            <h3>Bootstrap Feature stories</h3>
+            <div class="route-tokens">
+              <span class="route-token">Existing stories checked</span>
+              <span class="route-token">Confluence + repo graph</span>
+              <span class="route-token">Sprint plan preview</span>
+              <span class="route-token ask">User approves batch</span>
+              <span class="route-token ok">Create approved batch</span>
+            </div>
+          </div>
+          <div class="route-row">
+            <h3>Manage subtasks</h3>
+            <div class="route-tokens">
+              <span class="route-token">Suggest subtasks</span>
+              <span class="route-token">Duplicate check</span>
+              <span class="route-token">Preview actions</span>
+              <span class="route-token ask">Approved action IDs</span>
+              <span class="route-token ok">Apply approved subtasks</span>
+            </div>
+          </div>
+          <div class="route-row">
+            <h3>Blocked route</h3>
+            <div class="route-tokens">
+              <span class="route-token">Missing Feature</span>
+              <span class="route-token">No codebase match</span>
+              <span class="route-token">Missing sprint</span>
+              <span class="route-token">No approval</span>
+              <span class="route-token stop">Stop + ask next question</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- ── Slide 6 ── -->
+      <article class="slide" style="--accent-color:var(--amber);" aria-labelledby="slide-6-title">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Guardrails</div>
+            <h2 id="slide-6-title">Rules that keep the result controlled</h2>
+            <p class="lead">These are the controls that keep Jira automation safe and predictable.</p>
+          </div>
+          <div class="slide-badge">6</div>
+        </header>
+        <div class="content grid four">
+          <article class="gate-card">
+            <span class="gate-label">Gate 1</span>
+            <h3>Read Current Jira</h3>
+            <p>Before analysis or refinement, the current Jira story is loaded with fields, comments, links, and subtasks.</p>
+          </article>
+          <article class="gate-card stop">
+            <span class="gate-label">Gate 2</span>
+            <h3>Feature Context Mandatory</h3>
+            <p>If parent Feature or sibling stories cannot be loaded, Jira writing stops and the user must confirm the Feature.</p>
+          </article>
+          <article class="gate-card stop">
+            <span class="gate-label">Gate 3</span>
+            <h3>Codebase Scan Mandatory</h3>
+            <p>Story updates and creates must be grounded in actual repo context. No matching codebase evidence means no Jira write.</p>
+          </article>
+          <article class="gate-card">
+            <span class="gate-label">Gate 4</span>
+            <h3>Proposal First</h3>
+            <p>Refine, create, bootstrap, subtask apply, and delete flows show a preview before execution.</p>
+          </article>
+          <article class="gate-card stop">
+            <span class="gate-label">Gate 5</span>
+            <h3>Explicit Approval</h3>
+            <p>User must approve the exact proposed payload or action IDs. The tool blocks missing or mismatched approvals.</p>
+          </article>
+          <article class="gate-card">
+            <span class="gate-label">Gate 6</span>
+            <h3>No Guessing</h3>
+            <p>The tool does not guess sprint, parent Feature, or unrelated scope. Missing details return a question.</p>
+          </article>
+          <article class="gate-card">
+            <span class="gate-label">Gate 7</span>
+            <h3>Evidence Returned</h3>
+            <p>The result includes mode, planned changes, applied changes, block reason, or next action.</p>
+          </article>
+          <article class="gate-card">
+            <span class="gate-label">Rule</span>
+            <h3>Jira Writes Stay Inside MCP</h3>
+            <p>Copilot and Windsurf can suggest and explain, but Jira writes happen only through approved MCP tool calls.</p>
+          </article>
+        </div>
+      </article>
+
+      <!-- ── Slide 7 ── -->
+      <article class="slide" style="--accent-color:var(--green);" aria-labelledby="slide-7-title">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Result</div>
+            <h2 id="slide-7-title">What the user can get back</h2>
+            <p class="lead">Every response includes status, evidence, and the next safe step.</p>
+          </div>
+          <div class="slide-badge">7</div>
+        </header>
+        <div class="content grid three">
+          <article class="result-card">
+            <div class="result-icon">📋</div>
+            <h3>Story Readout</h3>
+            <p>Jira ID, title, status, issue type, priority, assignee, reporter, description summary, comments, links, and subtasks.</p>
+          </article>
+          <article class="result-card">
+            <div class="result-icon">🔍</div>
+            <h3>Analysis Report</h3>
+            <p>Gaps, missing ACs, impacted areas, risk notes, Feature alignment, and suggested next questions.</p>
+          </article>
+          <article class="result-card">
+            <div class="result-icon">✅</div>
+            <h3>Approved Story Update</h3>
+            <p>Updated summary, formatted description, ACs, regulatory justification, and reason/comments fields.</p>
+          </article>
+          <article class="result-card">
+            <div class="result-icon">📐</div>
+            <h3>Story or Subtask Plan</h3>
+            <p>Preview of Feature stories, one-story creation payload, or duplicate-aware subtask actions before applying.</p>
+          </article>
+          <article class="result-card">
+            <div class="result-icon">🛑</div>
+            <h3>Blocked Result</h3>
+            <p>Clear stop reason when Feature context, codebase scan, sprint, approved payload, or confirmation is missing.</p>
+          </article>
+          <article class="result-card">
+            <div class="result-icon">🔗</div>
+            <h3>Traceable Evidence</h3>
+            <p>Tool mode, inputs, planned changes, applied changes, memory key, and next action for follow-up automation.</p>
+          </article>
+        </div>
+      </article>
+
+      <!-- ── Slide 8 – GitLab ── -->
+      <article class="slide tree-slide" style="--accent-color:var(--amber);" aria-labelledby="slide-8-title">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">GitLab action routing diagram</div>
+            <h2 id="slide-8-title">How GitLab actions are routed</h2>
+            <p class="lead">MCP routes every GitLab request to the right path — branch ops, MR inspection, or controlled MR creation — after validating token health and branch state.</p>
+          </div>
+          <div class="slide-badge">8</div>
+        </header>
+        <div class="content tree-layout">
+          <div class="tree-flow" style="--tree:var(--amber);" aria-label="GitLab action flow tree diagram">
+            <div class="tree-main">
+              <article class="tree-item active-tree" data-tree-name="gitlab" data-tree-step="0" style="--tree-card:var(--green);">
+                <h3>1. Classify the GitLab request</h3>
+                <p>Identify branch management, MR inspection, MR creation, or token health check intent.</p>
+              </article>
+              <section class="tree-branches" data-tree-name="gitlab" data-tree-step="1">
+                <article class="tree-branch-card" style="--tree-card:var(--blue);">
+                  <h3>Branch management</h3>
+                  <p>Use <code>gitlab_list_branches</code>, <code>gitlab_create_branch</code>, and <code>gitlab_git_status</code>.</p>
+                </article>
+                <article class="tree-branch-card" style="--tree-card:var(--cyan);">
+                  <h3>MR inspection</h3>
+                  <p>Use <code>gitlab_list_merge_requests</code> and <code>gitlab_get_merge_request</code> for read-only views.</p>
+                </article>
+                <article class="tree-branch-card" style="--tree-card:var(--amber);">
+                  <h3>MR creation</h3>
+                  <p>Use <code>gitlab_prepare_merge_request</code> then <code>gitlab_safe_create_merge_request</code> after checks.</p>
+                </article>
+                <article class="tree-branch-card" style="--tree-card:var(--violet);">
+                  <h3>Token health</h3>
+                  <p>Use <code>gitlab_check_connection</code> and <code>gitlab_check_token_health</code> before any API call.</p>
+                </article>
+              </section>
+              <article class="tree-item" data-tree-name="gitlab" data-tree-step="2" style="--tree-card:var(--cyan);">
+                <h3>3. Read-only &amp; branch ops return immediately</h3>
+                <p>Branch list, git status, and MR reads return results without further gating.</p>
+              </article>
+              <article class="tree-item" data-tree-name="gitlab" data-tree-step="3" style="--tree-card:var(--amber);">
+                <h3>4. MR creation requires safety checks</h3>
+                <p>Token health validated, branch pushed, title and description prepared before MR is opened.</p>
+              </article>
+              <article class="tree-item" data-tree-name="gitlab" data-tree-step="4" style="--tree-card:var(--red);">
+                <h3>5. Safety gate blocks on missing conditions</h3>
+                <p>Block if token is expired, branch is not pushed, or source equals target branch.</p>
+              </article>
+              <article class="tree-item" data-tree-name="gitlab" data-tree-step="5" style="--tree-card:var(--green);">
+                <h3>6. Return a controlled GitLab result</h3>
+                <p>Returns branch list, MR details, created MR URL, or a clear stop reason.</p>
+              </article>
+            </div>
+            <div class="tree-caption">
+              <strong id="gitlabTreeLabel">GitLab Step 1</strong>
+              <span id="gitlabTreeText">MCP first classifies what the user wants to do in GitLab.</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- ── Slide 9 – Databricks ── -->
+      <article class="slide tree-slide" style="--accent-color:var(--red);" aria-labelledby="slide-9-title">
+        <header class="slide-header">
+          <div>
+            <div class="eyebrow">Databricks action routing diagram</div>
+            <h2 id="slide-9-title">How Databricks actions are routed</h2>
+            <p class="lead">MCP routes each Databricks request — SQL queries, job runs, pipelines, dashboards, or vector search — through the correct compute path with resource validation.</p>
+          </div>
+          <div class="slide-badge">9</div>
+        </header>
+        <div class="content tree-layout">
+          <div class="tree-flow" style="--tree:var(--red);" aria-label="Databricks action flow tree diagram">
+            <div class="tree-main">
+              <article class="tree-item active-tree" data-tree-name="databricks" data-tree-step="0" style="--tree-card:var(--green);">
+                <h3>1. Classify the Databricks request</h3>
+                <p>Identify SQL query, job management, pipeline control, dashboard, vector search, or cluster operation.</p>
+              </article>
+              <section class="tree-branches" data-tree-name="databricks" data-tree-step="1">
+                <article class="tree-branch-card" style="--tree-card:var(--blue);">
+                  <h3>SQL / Query</h3>
+                  <p>Use <code>execute_sql</code> with auto-selected warehouse for SELECT, DML, and DDL.</p>
+                </article>
+                <article class="tree-branch-card" style="--tree-card:var(--cyan);">
+                  <h3>Jobs &amp; runs</h3>
+                  <p>Use <code>manage_jobs</code> and <code>manage_job_runs</code> for scheduling and monitoring.</p>
+                </article>
+                <article class="tree-branch-card" style="--tree-card:var(--red);">
+                  <h3>Pipelines</h3>
+                  <p>Use <code>manage_pipeline</code> and <code>manage_pipeline_run</code> for declarative pipeline control.</p>
+                </article>
+                <article class="tree-branch-card" style="--tree-card:var(--violet);">
+                  <h3>Dashboards &amp; Vector Search</h3>
+                  <p>Use <code>manage_dashboard</code> and <code>manage_vs_index</code> for BI and semantic search.</p>
+                </article>
+              </section>
+              <article class="tree-item" data-tree-name="databricks" data-tree-step="2" style="--tree-card:var(--cyan);">
+                <h3>3. Read queries and scans return immediately</h3>
+                <p>SELECT queries, job status, pipeline state, and index scans are non-destructive and return fast.</p>
+              </article>
+              <article class="tree-item" data-tree-name="databricks" data-tree-step="3" style="--tree-card:var(--amber);">
+                <h3>4. Write operations require compute validation</h3>
+                <p>Warehouse auto-selected or cluster ID confirmed before any job create, pipeline run, or DDL.</p>
+              </article>
+              <article class="tree-item" data-tree-name="databricks" data-tree-step="4" style="--tree-card:var(--red);">
+                <h3>5. Safety gate blocks on missing resources</h3>
+                <p>Block if no warehouse is available, cluster is terminated, or catalog/schema context is missing.</p>
+              </article>
+              <article class="tree-item" data-tree-name="databricks" data-tree-step="5" style="--tree-card:var(--green);">
+                <h3>6. Return a controlled Databricks result</h3>
+                <p>Returns query results, job run ID, pipeline state, dashboard URL, or a clear error reason.</p>
+              </article>
+            </div>
+            <div class="tree-caption">
+              <strong id="databricksTreeLabel">Databricks Step 1</strong>
+              <span id="databricksTreeText">MCP first classifies the Databricks operation type.</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </section><!-- /slides -->
+
+    <footer class="controls">
+      <div class="nav-group">
+        <button class="nav-button" id="prevBtn" type="button" aria-label="Previous slide">&#8249;</button>
+        <button class="nav-button" id="nextBtn" type="button" aria-label="Next slide">&#8250;</button>
+      </div>
+      <div class="dots" id="dots" aria-label="Slide navigation"></div>
+      <div class="file-path">Automation/docs/automation-routing-diagram.html</div>
+      <div class="progress" id="progress"></div>
+    </footer>
+  </main>
+
+  <script>
+    (function () {
+      var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+      var dotsHost = document.getElementById('dots');
+      var prevBtn = document.getElementById('prevBtn');
+      var nextBtn = document.getElementById('nextBtn');
+      var slideCount = document.getElementById('slideCount');
+      var progress = document.getElementById('progress');
+      var marker = document.getElementById('requestMarker');
+      var flowNodes = Array.prototype.slice.call(document.querySelectorAll('[data-flow-step]'));
+      var flowLabel = document.getElementById('flowStepLabel');
+      var flowText = document.getElementById('flowStepText');
+      var activeSlide = 0;
+      var activeFlowStep = 0;
+      var flowTimer = null;
+      var treeTimer = null;
+      var activeTreeName = null;
+      var activeTreeStep = 0;
+
+      var flowMessages = [
+        'Request starts with the user.',
+        'Assistant classifies intent and selects the MCP route.',
+        'jira-mcp executes the selected tool path.',
+        'Required context is gathered from project knowledge sources.',
+        'Guardrails validate policy, context, sprint, and approval.',
+        'Jira action follows read, preview, apply, or block path.',
+        'User receives one controlled and traceable outcome.'
+      ];
+
+      var treeConfigs = {
+        actions: {
+          slideIndex: 3,
+          labelId: 'actionTreeLabel',
+          textId: 'actionTreeText',
+          positions: ['8%','28%','48%','63%','78%','91%'],
+          messages: [
+            'MCP first classifies what the user is asking to do in Jira.',
+            'The request is routed to read-only, planning, create/update, or subtask tools.',
+            'Read-only routes can return results immediately — no write is performed.',
+            'Write routes must show an exact preview and wait for explicit user approval.',
+            'Safety gates block writes when required context or approval is missing.',
+            'The final response is controlled: read result, proposal, applied change, or stop reason.'
+          ]
+        },
+        gitlab: {
+          slideIndex: 7,
+          labelId: 'gitlabTreeLabel',
+          textId: 'gitlabTreeText',
+          positions: ['8%','28%','48%','63%','78%','91%'],
+          messages: [
+            'MCP first classifies what the user wants to do in GitLab.',
+            'Route to branch management, MR inspection, MR creation, or token health check.',
+            'Branch ops and read-only MR routes return results immediately.',
+            'MR creation flows validate token health and branch state first.',
+            'Safety gates block MR creation if token is expired or branch conditions are not met.',
+            'The final response is controlled: branch info, MR details, created MR URL, or stop reason.'
+          ]
+        },
+        databricks: {
+          slideIndex: 8,
+          labelId: 'databricksTreeLabel',
+          textId: 'databricksTreeText',
+          positions: ['8%','28%','48%','63%','78%','91%'],
+          messages: [
+            'MCP first classifies the Databricks operation type.',
+            'Route to SQL, job management, pipeline control, dashboard, or vector search.',
+            'Read queries and status checks return results immediately — no compute provisioning needed.',
+            'Write operations confirm warehouse or cluster compute before executing.',
+            'Safety gates block if compute resources are unavailable or catalog/schema context is missing.',
+            'The final response includes query results, job run ID, pipeline state, dashboard URL, or error reason.'
+          ]
+        }
+      };
+
+      function buildDots() {
+        slides.forEach(function (_, index) {
+          var dot = document.createElement('button');
+          dot.className = 'dot'; dot.type = 'button';
+          dot.setAttribute('aria-label', 'Go to slide ' + (index + 1));
+          dot.addEventListener('click', function () { showSlide(index); });
+          dotsHost.appendChild(dot);
+        });
+      }
+
+      function updateFlowStep(step) {
+        activeFlowStep = step;
+        flowNodes.forEach(function (node, index) { node.classList.toggle('active-step', index === step); });
+        if (marker) {
+          var positions = ['7%','21.3%','35.6%','50%','64.4%','78.7%','93%'];
+          marker.style.setProperty('--marker-left', positions[step]);
+        }
+        if (flowLabel) flowLabel.textContent = 'Step ' + (step + 1);
+        if (flowText) flowText.textContent = flowMessages[step];
+      }
+
+      function startFlowAnimation() {
+        stopFlowAnimation(); updateFlowStep(0);
+        flowTimer = setInterval(function () { updateFlowStep((activeFlowStep + 1) % flowNodes.length); }, 1350);
+      }
+      function stopFlowAnimation() { if (flowTimer) { clearInterval(flowTimer); flowTimer = null; } }
+
+      function updateTreeStep(treeName, step) {
+        var config = treeConfigs[treeName];
+        if (!config) return;
+        activeTreeName = treeName; activeTreeStep = step;
+        var items = Array.prototype.slice.call(document.querySelectorAll('[data-tree-name="' + treeName + '"]'));
+        items.forEach(function (item) {
+          var match = Number(item.getAttribute('data-tree-step')) === step;
+          item.classList.toggle('active-tree', match);
+          if (item.classList.contains('tree-branches')) {
+            Array.prototype.slice.call(item.querySelectorAll('.tree-branch-card')).forEach(function (card) {
+              card.classList.toggle('active-tree', match);
+            });
+          }
+        });
+        var label = document.getElementById(config.labelId);
+        var text = document.getElementById(config.textId);
+        if (label) label.textContent = 'Action Step ' + (step + 1);
+        if (text) text.textContent = config.messages[step];
+      }
+
+      function startTreeAnimation(treeName) {
+        stopTreeAnimation(); updateTreeStep(treeName, 0);
+        treeTimer = setInterval(function () {
+          var config = treeConfigs[activeTreeName];
+          if (!config) return;
+          updateTreeStep(activeTreeName, (activeTreeStep + 1) % config.positions.length);
+        }, 1500);
+      }
+      function stopTreeAnimation() { if (treeTimer) { clearInterval(treeTimer); treeTimer = null; } }
+
+      function showSlide(index) {
+        if (index < 0 || index >= slides.length) return;
+        slides.forEach(function (slide, slideIndex) {
+          slide.classList.remove('active', 'out-left');
+          if (slideIndex < index) slide.classList.add('out-left');
+        });
+        activeSlide = index;
+        slides[index].classList.add('active');
+        var dots = Array.prototype.slice.call(dotsHost.querySelectorAll('.dot'));
+        dots.forEach(function (dot, dotIndex) { dot.classList.toggle('active', dotIndex === index); });
+        slideCount.textContent = 'Slide ' + (index + 1) + ' of ' + slides.length;
+        prevBtn.disabled = index === 0;
+        nextBtn.disabled = index === slides.length - 1;
+        progress.style.setProperty('--progress', (((index + 1) / slides.length) * 100).toFixed(2) + '%');
+        if (index === 1) { startFlowAnimation(); } else { stopFlowAnimation(); }
+        if (index === treeConfigs.actions.slideIndex) { startTreeAnimation('actions'); }
+        else if (index === treeConfigs.gitlab.slideIndex) { startTreeAnimation('gitlab'); }
+        else if (index === treeConfigs.databricks.slideIndex) { startTreeAnimation('databricks'); }
+        else { stopTreeAnimation(); }
+      }
+
+      prevBtn.addEventListener('click', function () { showSlide(activeSlide - 1); });
+      nextBtn.addEventListener('click', function () { showSlide(activeSlide + 1); });
+      window.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowLeft') showSlide(activeSlide - 1);
+        if (e.key === 'ArrowRight') showSlide(activeSlide + 1);
+      });
+
+      buildDots();
+      showSlide(0);
+    })();
+  </script>
+</body>
+</html>

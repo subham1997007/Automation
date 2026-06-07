@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Automation MCP Routing Diagram</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #06080e;
+      --ink: #f7fbff;
+      --muted: #91a2b8;
+      --grid: rgba(255, 255, 255, 0.035);
+      --line: rgba(151, 169, 190, 0.23);
+      --setup: #56b6ff;
+      --jira: #3ba7ff;
+      --gitlab: #ff9f43;
+      --test: #39d98a;
+      --review: #b786ff;
+      --dev: #ff6f7d;
+      --approval: #f6cf65;
+      --databricks: #ff3621;
+      --box-w: 182px;
+      --box-h: 132px;
+      --radius: 10px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 16% 16%, rgba(59, 167, 255, 0.18), transparent 30%),
+        radial-gradient(circle at 82% 18%, rgba(183, 134, 255, 0.14), transparent 32%),
+        radial-gradient(circle at 62% 88%, rgba(57, 217, 138, 0.10), transparent 34%),
+        radial-gradient(circle at 90% 72%, rgba(255, 54, 33, 0.10), transparent 28%),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 42px 42px,
+        linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 42px 42px,
+        var(--bg);
+      overflow-x: hidden;
+    }
+
+    .stage {
+      width: min(1480px, calc(100vw - 36px));
+      margin: 0 auto;
+      padding: 28px 0 40px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #7bd3ff;
+      border: 1px solid rgba(123, 211, 255, 0.28);
+      background: rgba(8, 12, 19, 0.82);
+      padding: 5px 12px 5px 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 11px;
+      font-weight: 800;
+      border-radius: 20px;
+    }
+
+    .eyebrow::before {
+      content: "";
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #7bd3ff;
+      box-shadow: 0 0 8px #7bd3ff, 0 0 16px #7bd3ff;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    h1 {
+      margin: 10px 0 6px;
+      font-size: clamp(22px, 3.2vw, 44px);
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      font-weight: 900;
+    }
+
+    .title-word {
+      display: inline-block;
+      position: relative;
+    }
+
+    /* "Controlled" — cool cyan→blue gradient */
+    .title-controlled {
+      background: linear-gradient(135deg, #39d98a 0%, #56b6ff 60%, #b786ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 18px rgba(86,182,255,0.45));
+    }
+
+    /* "Agentic" — hot orange→pink gradient */
+    .title-agentic {
+      background: linear-gradient(135deg, #ff9f43 0%, #ff6f7d 55%, #b786ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 18px rgba(255,111,125,0.4));
+    }
+
+    /* "Development" — muted white */
+    .title-development {
+      background: linear-gradient(135deg, #e2eaf5 0%, #91a2b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* "with" — pure muted */
+    .title-with {
+      background: linear-gradient(135deg, #586880 0%, #3d4e62 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 400;
+      font-size: 0.72em;
+      letter-spacing: 0.04em;
+    }
+
+    /* "AI Tool Routing" — gold→yellow gradient */
+    .title-ai {
+      background: linear-gradient(135deg, #f6cf65 0%, #ffad3b 45%, #ff9f43 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 18px rgba(246,207,101,0.45));
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13.5px;
+      line-height: 1.6;
+      max-width: 860px;
+    }
+
+    .subtitle b {
+      color: var(--approval);
+      font-weight: 800;
+    }
+
+    .diagram {
+      position: relative;
+      margin-top: 24px;
+      min-height: 960px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px) 0 0 / 38px 38px,
+        linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px) 0 0 / 38px 38px,
+        rgba(7, 11, 18, 0.78);
+      box-shadow: 0 26px 90px rgba(0, 0, 0, 0.48);
+      overflow: hidden;
+    }
+
+    .diagram::before {
+      content: "";
+      position: absolute;
+      inset: -18% 8% auto 8%;
+      height: 260px;
+      background: linear-gradient(90deg, rgba(86, 182, 255, 0.18), rgba(255, 159, 67, 0.12), rgba(183, 134, 255, 0.14));
+      filter: blur(48px);
+      pointer-events: none;
+    }
+
+    .node {
+      position: absolute;
+      z-index: 3;
+      width: var(--box-w);
+      height: var(--box-h);
+      padding: 10px 10px 8px;
+      border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--line));
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(21, 29, 43, 0.94), rgba(9, 13, 21, 0.96));
+      box-shadow: 0 18px 56px rgba(0, 0, 0, 0.38);
+      overflow: hidden;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .node.compact {
+      width: var(--box-w);
+      height: var(--box-h);
+    }
+
+    .node.route {
+      width: var(--box-w);
+      height: var(--box-h);
+      text-align: center;
+    }
+
+    .node.result {
+      width: var(--box-w);
+      height: var(--box-h);
+      text-align: center;
+    }
+
+    .badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      min-width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      color: var(--accent);
+      border: 1px solid color-mix(in srgb, var(--accent) 64%, transparent);
+      border-radius: 6px;
+      background: #070b12;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .logo {
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 6px;
+      color: var(--accent);
+      background: rgba(6, 10, 16, 0.78);
+      border: 1px solid color-mix(in srgb, var(--accent) 64%, transparent);
+      border-radius: 7px;
+    }
+
+    .logo svg {
+      width: 15px;
+      height: 15px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.9;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .node h2,
+    .node h3 {
+      margin: 0;
+      color: color-mix(in srgb, var(--accent) 78%, #ffffff);
+      font-size: 12.5px;
+      line-height: 1.2;
+      letter-spacing: 0;
+      text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 38%, transparent);
+      /* clamp to 2 lines */
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .node p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.4;
+      /* strictly 2 lines, ellipsis if too long */
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .chips {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 5px;
+    }
+
+    .chip {
+      color: color-mix(in srgb, var(--accent) 80%, white);
+      border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+      border-radius: 4px;
+      padding: 2px 4px;
+      font-size: 9px;
+      line-height: 1;
+    }
+
+    .wire {
+      position: absolute;
+      z-index: 2;
+      pointer-events: none;
+      overflow: visible;
+      filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 70%, transparent));
+    }
+
+    .wire path {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 10 7;
+      opacity: 0.96;
+      marker-end: url(#flow-arrow);
+    }
+
+    .wire .runner {
+      stroke: color-mix(in srgb, var(--accent) 45%, #ffffff);
+      stroke-width: 5;
+      opacity: 1;
+      stroke-dasharray: 24 320;
+      animation: dashFlow 2.2s linear infinite;
+      marker-end: none;
+    }
+
+    @keyframes dashFlow {
+      to {
+        stroke-dashoffset: -338;
+      }
+    }
+
+    .legend {
+      position: absolute;
+      left: 50%;
+      bottom: 4px;
+      transform: translateX(-50%);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      width: min(1040px, calc(100% - 40px));
+      color: var(--muted);
+      font-size: 12px;
+      z-index: 6;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+
+    .legend i {
+      display: inline-block;
+      width: 28px;
+      height: 4px;
+      background: var(--accent);
+    }
+
+    .flow-label {
+      position: absolute;
+      z-index: 5;
+      color: color-mix(in srgb, var(--accent) 82%, white);
+      padding: 0;
+      font-size: 10px;
+      font-weight: 800;
+      white-space: nowrap;
+      text-shadow: 0 0 8px #05070b, 0 0 14px color-mix(in srgb, var(--accent) 55%, transparent);
+    }
+
+    .arrow-defs {
+      position: absolute;
+      width: 0;
+      height: 0;
+      overflow: hidden;
+    }
+
+    .setup { --accent: var(--setup); }
+    .jira { --accent: var(--jira); }
+    .gitlab { --accent: var(--gitlab); }
+    .test { --accent: var(--test); }
+    .review { --accent: var(--review); }
+    .dev { --accent: var(--dev); }
+    .approval { --accent: var(--approval); }
+    .databricks { --accent: var(--databricks); }
+
+    .n-copy { left: 5.5%; top: 88px; }
+    .n-config { left: 25.2%; top: 88px; }
+    .n-command { left: 44.9%; top: 88px; }
+    .n-ide { left: 64.6%; top: 88px; }
+
+    .n-user { left: 13.4%; top: 292px; }
+    .n-copilot { left: 39.2%; top: 292px; }
+    .n-mcp { left: 65%; top: 292px; }
+
+    .n-jira { left: 2%; top: 510px; }
+    .n-gitlab { left: 16.5%; top: 510px; }
+    .n-test { left: 31%; top: 510px; }
+    .n-review { left: 45.5%; top: 510px; }
+    .n-dev { left: 60%; top: 510px; }
+    .n-databricks { left: 74.5%; top: 510px; }
+
+    .n-result { left: 50%; top: 788px; transform: translateX(-50%); }
+
+    .fl-config { left: 20.7%; top: 134px; transform: translateX(-50%); }
+    .fl-setup { left: 40.2%; top: 134px; transform: translateX(-50%); }
+    .fl-register { left: 60%; top: 134px; transform: translateX(-50%); }
+    .fl-reload    { top: 250px; }   /* x set by JS */
+    .fl-agent     { top: 330px; }   /* x set by JS */
+    .fl-tools     { top: 330px; }   /* x set by JS */
+    .fl-langgraph { top: 458px; }   /* x set by JS */
+    .fl-result { left: 50%; top: 742px; transform: translateX(-50%); }
+
+    @media (max-width: 1180px) {
+      .diagram {
+        min-height: auto;
+        padding: 18px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .node,
+      .node.compact,
+      .node.route,
+      .node.result,
+      .label,
+      .legend {
+        position: static;
+        transform: none;
+        width: auto;
+      }
+
+      .wire {
+        display: none;
+      }
+
+      .flow-label {
+        display: none;
+      }
+
+      .legend {
+        margin-top: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <div class="eyebrow">Automation Folder Setup + MCP Tool Routing</div>
+    <h1>
+      <span class="title-word title-controlled">Controlled</span>&#8203;
+      <span class="title-word title-agentic"> Agentic</span>
+      <span class="title-word title-development"> Development</span>
+      <span class="title-word title-with"> &nbsp;with&nbsp; </span>
+      <span class="title-word title-ai">AI Tool Routing</span>
+    </h1>
+    <p class="subtitle">
+      A team copies the Automation folder, enables one profile, restarts the IDE, and then asks normally.
+      Copilot/Windsurf can use only the MCP tools exposed by that selected profile, with <b>memory, guardrails, and approval gates</b>.
+    </p>
+
+    <section class="diagram" aria-label="Automation MCP routing diagram">
+      <svg class="arrow-defs" aria-hidden="true">
+        <defs>
+          <marker id="flow-arrow" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto">
+            <path d="M0 0L5 2.5L0 5Z" fill="#ffffff"></path>
+          </marker>
+        </defs>
+      </svg>
+
+      <!-- ── Step 1: Copy Automation Folder — folder icon ── -->
+      <article class="node setup n-copy">
+        <div class="badge">1</div>
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            <line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>
+          </svg>
+        </div>
+        <h2>Copy Automation Folder</h2>
+        <p>Place the portable Automation folder inside any project repository.</p>
+      </article>
+
+      <!-- ── Step 2: Add Local Config — key icon ── -->
+      <article class="node approval n-config">
+        <div class="badge">2</div>
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <circle cx="7.5" cy="15.5" r="4.5"/>
+            <path d="M21 2l-9.6 9.6M15.5 7.5l2 2L21 6l-2-2"/>
+          </svg>
+        </div>
+        <h2>Add Local Config</h2>
+        <p>Keep project credentials and tool settings in the private local env file.</p>
+      </article>
+
+      <!-- ── Step 3: Run Profile Command — terminal prompt ── -->
+      <article class="node setup n-command">
+        <div class="badge">3</div>
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <rect x="2" y="3" width="20" height="18" rx="2"/>
+            <path d="M7 9l4 4-4 4"/><line x1="13" y1="17" x2="17" y2="17"/>
+          </svg>
+        </div>
+        <h2>Run Profile Command</h2>
+        <p>Choose one profile. Setup installs dependencies and writes IDE MCP config.</p>
+      </article>
+
+      <!-- ── Step 4: Restart IDE — rotate/refresh icon ── -->
+      <article class="node dev n-ide">
+        <div class="badge">4</div>
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <polyline points="1 4 1 10 7 10"/>
+            <path d="M3.51 15a9 9 0 1 0 .49-4.5"/>
+          </svg>
+        </div>
+        <h2>Restart IDE</h2>
+        <p>Copilot, Windsurf, VS Code, or JetBrains reloads the selected MCP server.</p>
+      </article>
+
+      <!-- ── Step 5: User Request — person/user icon ── -->
+      <article class="node compact setup n-user">
+        <div class="badge">5</div>
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="7" r="4"/>
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          </svg>
+        </div>
+        <h2>User Request</h2>
+        <p>Ask normally: update story, prepare MR, run tests, review, or implement.</p>
+      </article>
+
+      <!-- ── Step 6: Copilot / Windsurf — AI sparkles icon ── -->
+      <article class="node compact dev n-copilot">
+        <div class="badge">6</div>
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.937A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .963L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+            <path d="M20 3v4M22 5h-4M4 17v2M5 18H3"/>
+          </svg>
+        </div>
+        <h2>Copilot / Windsurf</h2>
+        <p>The AI host selects from the active profile's exposed MCP tools.</p>
+      </article>
+
+      <!-- ── Step 7: MCP Server + Tools — CPU/chip icon ── -->
+      <article class="node compact approval n-mcp">
+        <div class="badge">7</div>
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <rect x="4" y="4" width="16" height="16" rx="2"/>
+            <rect x="9" y="9" width="6" height="6"/>
+            <path d="M15 2v2M9 2v2M15 20v2M9 20v2M2 15h2M2 9h2M20 15h2M20 9h2"/>
+          </svg>
+        </div>
+        <h2>MCP Server + Tools</h2>
+        <p>Runs the selected tool with memory, safety checks, and approval gates.</p>
+      </article>
+
+      <!-- ── Step 8a: Jira Flow — clipboard-check / ticket icon ── -->
+      <article class="node route jira n-jira">
+        <div class="badge">8a</div>
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <rect x="9" y="3" width="6" height="4" rx="1"/>
+            <path d="M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2"/>
+            <path d="M9 11l3 3 3.5-4.5"/>
+          </svg>
+        </div>
+        <h3>Jira Flow</h3>
+        <p>Reads story, feature, AC, regulatory field, comments, subtasks, and linked work.</p>
+        <div class="chips"><span class="chip">Read</span><span class="chip">Analyze</span><span class="chip">Approve</span></div>
+      </article>
+
+      <!-- ── Step 8b: GitLab Flow — git branch icon ── -->
+      <article class="node route gitlab n-gitlab">
+        <div class="badge">8b</div>
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <line x1="6" y1="3" x2="6" y2="15"/>
+            <circle cx="18" cy="6" r="3"/>
+            <circle cx="6" cy="18" r="3"/>
+            <path d="M18 9a9 9 0 0 1-9 9"/>
+          </svg>
+        </div>
+        <h3>GitLab Flow</h3>
+        <p>Checks branch safety, prepares MR text, validates repo state, and blocks unsafe actions.</p>
+        <div class="chips"><span class="chip">Branch</span><span class="chip">MR</span><span class="chip">Template</span></div>
+      </article>
+
+      <!-- ── Step 8c: Test Flow — flask/beaker icon ── -->
+      <article class="node route test n-test">
+        <div class="badge">8c</div>
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M9 3h6"/>
+            <path d="M10 3v6l-5 8a3 3 0 0 0 3 4h8a3 3 0 0 0 3-4l-5-8V3"/>
+            <path d="M7 15h10"/>
+            <path d="M11 18h.01M14 16h.01"/>
+          </svg>
+        </div>
+        <h3>Test Flow</h3>
+        <p>Detects project type, discovers commands, runs tests, and summarizes evidence.</p>
+        <div class="chips"><span class="chip">Detect</span><span class="chip">Run</span><span class="chip">Evidence</span></div>
+      </article>
+
+      <!-- ── Step 8d: Review Flow — search/magnifier icon ── -->
+      <article class="node route review n-review">
+        <div class="badge">8d</div>
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            <path d="M8.5 11h5M11 8.5v5"/>
+          </svg>
+        </div>
+        <h3>Review Flow</h3>
+        <p>Reviews current changes, checks AC coverage, risks, missing tests, and readiness.</p>
+        <div class="chips"><span class="chip">Coverage</span><span class="chip">Risk</span><span class="chip">Summary</span></div>
+      </article>
+
+      <!-- ── Step 8e: Dev Flow — code brackets </> icon ── -->
+      <article class="node route dev n-dev">
+        <div class="badge">8e</div>
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <polyline points="16 18 22 12 16 6"/>
+            <polyline points="8 6 2 12 8 18"/>
+            <line x1="12" y1="4" x2="12" y2="20"/>
+          </svg>
+        </div>
+        <h3>Dev Flow</h3>
+        <p>One controlled tool coordinates story readiness, code, tests, review, and MR prep.</p>
+        <div class="chips"><span class="chip">Story</span><span class="chip">Code</span><span class="chip">MR</span></div>
+      </article>
+
+      <!-- ── Step 8f: Databricks Flow — database/spark icon ── -->
+      <article class="node route databricks n-databricks">
+        <div class="badge">8f</div>
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <ellipse cx="12" cy="6" rx="9" ry="3"/>
+            <path d="M3 6v4c0 1.657 4.03 3 9 3s9-1.343 9-3V6"/>
+            <path d="M3 10v4c0 1.657 4.03 3 9 3s9-1.343 9-3v-4"/>
+            <path d="M3 14v4c0 1.657 4.03 3 9 3s9-1.343 9-3v-4"/>
+          </svg>
+        </div>
+        <h3>Databricks Flow</h3>
+        <p>Runs SQL, manages pipelines, dashboards, vector search, and Unity Catalog via MCP.</p>
+        <div class="chips"><span class="chip">SQL</span><span class="chip">Pipelines</span><span class="chip">UC</span></div>
+      </article>
+
+      <!-- ── Step 9: Controlled Result — award/medal icon ── -->
+      <article class="node result approval n-result">
+        <div class="badge">9</div>
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="8" r="6"/>
+            <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+          </svg>
+        </div>
+        <h3>Controlled Result</h3>
+        <p>User receives the selected profile result with evidence and approval status.</p>
+      </article>
+
+      <div class="flow-label approval fl-config">env config</div>
+      <div class="flow-label setup fl-setup">install deps</div>
+      <div class="flow-label dev fl-register">write MCP config</div>
+      <div class="flow-label setup fl-reload">IDE reload</div>
+      <div class="flow-label dev fl-agent">agent selects tool</div>
+      <div class="flow-label approval fl-tools">tool executes</div>
+      <div class="flow-label test fl-langgraph">LangGraph memory + guardrails route request</div>
+      <div class="flow-label approval fl-result">evidence returned</div>
+
+      <svg class="wire setup" style="left:calc(5.5% + var(--box-w));top:139px;width:calc(25.2% - 5.5% - var(--box-w));height:30px" viewBox="0 0 100 30" aria-hidden="true"><path d="M0 15H100"></path><path class="runner" d="M0 15H100"></path></svg>
+      <svg class="wire approval" style="left:calc(25.2% + var(--box-w));top:139px;width:calc(44.9% - 25.2% - var(--box-w));height:30px" viewBox="0 0 100 30" aria-hidden="true"><path d="M0 15H100"></path><path class="runner" d="M0 15H100"></path></svg>
+      <svg class="wire dev" style="left:calc(44.9% + var(--box-w));top:139px;width:calc(64.6% - 44.9% - var(--box-w));height:30px" viewBox="0 0 100 30" aria-hidden="true"><path d="M0 15H100"></path><path class="runner" d="M0 15H100"></path></svg>
+
+      <!-- all dynamic wires (step4→5, middle row, fan-out, fan-in) drawn by JS -->
+
+      <div class="legend">
+        <span class="setup"><i></i>Setup</span>
+        <span class="jira"><i></i>Jira</span>
+        <span class="gitlab"><i></i>GitLab</span>
+        <span class="test"><i></i>Test</span>
+        <span class="review"><i></i>Review</span>
+        <span class="dev"><i></i>Dev</span>
+        <span class="databricks"><i></i>Databricks</span>
+        <span class="approval"><i></i>Guardrails</span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      var NS = 'http://www.w3.org/2000/svg';
+
+      /* Rect of an element relative to the diagram container */
+      function rel(diagram, sel) {
+        var el = typeof sel === 'string' ? document.querySelector(sel) : sel;
+        if (!el) return null;
+        var d = diagram.getBoundingClientRect();
+        var r = el.getBoundingClientRect();
+        return {
+          l:  r.left   - d.left,
+          r:  r.right  - d.left,
+          t:  r.top    - d.top,
+          b:  r.bottom - d.top,
+          cx: (r.left  + r.right)  / 2 - d.left,
+          cy: (r.top   + r.bottom) / 2 - d.top
+        };
+      }
+
+      /*
+       * Append a <g class="wire accentCls"> with a dashed base path + animated
+       * runner to `parent`. CSS .wire path and .wire .runner handle all styling.
+       */
+      function wire(parent, d, cls) {
+        var g = document.createElementNS(NS, 'g');
+        g.classList.add('wire', cls);
+
+        var base = document.createElementNS(NS, 'path');
+        base.setAttribute('d', d);
+        g.appendChild(base);
+
+        var run = document.createElementNS(NS, 'path');
+        run.setAttribute('d', d);
+        run.classList.add('runner');
+        g.appendChild(run);
+
+        parent.appendChild(g);
+      }
+
+      /*
+       * Elbow path: straight down from (sx,sy) to busY, then horizontal to tx,
+       * then straight down to ty. Arrow lands at the bottom pointing downward.
+       */
+      function elbow(sx, sy, tx, ty, busY) {
+        var my = (busY !== undefined) ? busY : sy + (ty - sy) * 0.5;
+        var f  = function(n) { return n.toFixed(1); };
+        return 'M' + f(sx) + ' ' + f(sy) +
+               ' V' + f(my) +
+               ' H' + f(tx) +
+               ' V' + f(ty);
+      }
+
+      /* Position a flow-label div */
+      function label(sel, x, y, withBg) {
+        var el = document.querySelector(sel);
+        if (!el) return;
+        el.style.left      = x.toFixed(1) + 'px';
+        el.style.top       = y.toFixed(1) + 'px';
+        el.style.transform = 'translateX(-50%)';
+        if (withBg) {
+          el.style.background   = 'rgba(6,10,16,0.85)';
+          el.style.padding      = '2px 8px';
+          el.style.borderRadius = '4px';
+        }
+      }
+
+      function redraw() {
+        /* Remove all previously drawn dynamic elements */
+        document.querySelectorAll('.dyn-overlay, .dyn-mid-wire').forEach(function (el) { el.remove(); });
+
+        var diagram = document.querySelector('.diagram');
+        if (!diagram) return;
+
+        /* Single overlay SVG covering the full diagram area */
+        var ov = document.createElementNS(NS, 'svg');
+        ov.classList.add('dyn-overlay');
+        ov.setAttribute('aria-hidden', 'true');
+        ov.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;' +
+                           'z-index:2;pointer-events:none;overflow:visible;';
+
+        /* Collect all node rects */
+        var u  = rel(diagram, '.n-user');
+        var cp = rel(diagram, '.n-copilot');
+        var mc = rel(diagram, '.n-mcp');
+        var id = rel(diagram, '.n-ide');
+        var ji = rel(diagram, '.n-jira');
+        var gl = rel(diagram, '.n-gitlab');
+        var ts = rel(diagram, '.n-test');
+        var rv = rel(diagram, '.n-review');
+        var dv = rel(diagram, '.n-dev');
+        var db = rel(diagram, '.n-databricks');
+        var rs = rel(diagram, '.n-result');
+
+        if (!u || !cp || !mc || !id || !ji || !gl || !ts || !rv || !dv || !db || !rs) return;
+
+        /* ── Row 2 horizontal: User → Copilot → MCP ─────────────────── */
+        wire(ov, 'M' + u.r.toFixed(1)  + ' ' + u.cy.toFixed(1)  + ' H' + cp.l.toFixed(1), 'setup');
+        wire(ov, 'M' + cp.r.toFixed(1) + ' ' + cp.cy.toFixed(1) + ' H' + mc.l.toFixed(1), 'approval');
+
+        /* ── Step 4 → 5: Restart IDE bottom-centre → User Request top ── */
+        var busIde = id.b + 28;
+        wire(ov, elbow(id.cx, id.b, u.cx, u.t, busIde), 'setup');
+
+        /* ── Fan-out: MCP bottom-centre → each flow box top ─────────── */
+        var busFanOut = mc.b + 48;
+        var flows   = [ji, gl, ts, rv, dv, db];
+        var flowCls = ['jira', 'gitlab', 'test', 'review', 'dev', 'databricks'];
+        flows.forEach(function (fl, i) {
+          wire(ov, elbow(mc.cx, mc.b, fl.cx, fl.t, busFanOut), flowCls[i]);
+        });
+
+        /* ── Fan-in: each flow box bottom → Result top-centre ────────── */
+        var busFanIn = ji.b + 48;
+        flows.forEach(function (fl) {
+          wire(ov, elbow(fl.cx, fl.b, rs.cx, rs.t, busFanIn), 'approval');
+        });
+
+        diagram.appendChild(ov);
+
+        /* ── Flow label positions ─────────────────────────────────────── */
+        /* "agent selects tool": centred above User→Copilot segment */
+        label('.fl-agent', (u.r + cp.l) / 2, u.cy - 14);
+
+        /* "tool executes": centred above Copilot→MCP segment */
+        label('.fl-tools', (cp.r + mc.l) / 2, cp.cy - 14);
+
+        /* "IDE reload": above the horizontal segment of the IDE→User elbow */
+        label('.fl-reload', (id.cx + u.cx) / 2, busIde - 13);
+
+        /* "LangGraph…": just below MCP box with opaque background so it
+           stays readable even though the fan-out lines pass underneath */
+        label('.fl-langgraph', mc.cx, mc.b + 4, true);
+
+        /* "evidence returned": above the fan-in bus line */
+        label('.fl-result', rs.cx, busFanIn - 13);
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', redraw);
+      } else {
+        redraw();
+      }
+      window.addEventListener('resize', redraw);
+    })();
+  </script>
+</body>
+</html>

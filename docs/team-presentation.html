@@ -1,0 +1,1156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Controlled Agentic Development — Team Presentation</title>
+  <style>
+    /* ── tokens ───────────────────────────────────────────────────── */
+    :root {
+      --bg:       #06080e;
+      --surface:  rgba(14, 20, 34, 0.92);
+      --ink:      #f0f6ff;
+      --muted:    #7a8fa8;
+      --line:     rgba(255,255,255,0.07);
+      --blue:     #56b6ff;
+      --green:    #39d98a;
+      --orange:   #ff9f43;
+      --purple:   #b786ff;
+      --red:      #ff6f7d;
+      --gold:     #f6cf65;
+      --dev-col:  #56b6ff;
+      --po-col:   #f6cf65;
+      --sm-col:   #39d98a;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* ── slide deck ───────────────────────────────────────────────── */
+    .deck {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 48px 80px;
+      opacity: 0;
+      transform: translateX(60px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      pointer-events: none;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: all;
+    }
+
+    .slide.exit {
+      opacity: 0;
+      transform: translateX(-60px);
+    }
+
+    /* ── grid bg ─────────────────────────────────────────────────── */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px) 0 0 / 44px 44px,
+        linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px) 0 0 / 44px 44px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── progress bar ─────────────────────────────────────────────── */
+    .progress {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--blue), var(--purple), var(--gold));
+      transition: width 0.4s ease;
+      z-index: 100;
+    }
+
+    /* ── slide counter ────────────────────────────────────────────── */
+    .counter {
+      position: fixed;
+      bottom: 16px;
+      right: 24px;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      z-index: 100;
+    }
+
+    /* ── nav hints ───────────────────────────────────────────────── */
+    .nav-hint {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      color: rgba(122,143,168,0.5);
+      letter-spacing: 0.08em;
+      z-index: 100;
+    }
+
+    /* ── nav arrows ──────────────────────────────────────────────── */
+    .nav-btn {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 100;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 18px;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .nav-btn:hover { background: rgba(255,255,255,0.1); color: var(--ink); }
+    .nav-btn.prev { left: 16px; }
+    .nav-btn.next { right: 16px; }
+
+    /* ── typography ──────────────────────────────────────────────── */
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--blue);
+      border: 1px solid rgba(86,182,255,0.25);
+      background: rgba(86,182,255,0.07);
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+      display: inline-block;
+    }
+
+    h1.hero {
+      font-size: clamp(36px, 5vw, 72px);
+      font-weight: 900;
+      line-height: 1.0;
+      letter-spacing: -0.03em;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    h2.slide-title {
+      font-size: clamp(28px, 3.5vw, 48px);
+      font-weight: 900;
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      margin-bottom: 32px;
+      text-align: center;
+    }
+
+    .tagline {
+      font-size: clamp(14px, 1.8vw, 20px);
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.6;
+      max-width: 680px;
+    }
+
+    /* ── gradient text helpers ───────────────────────────────────── */
+    .g-blue   { background: linear-gradient(135deg,#39d98a,#56b6ff,#b786ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .g-orange { background: linear-gradient(135deg,#ff9f43,#ff6f7d); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .g-gold   { background: linear-gradient(135deg,#f6cf65,#ff9f43); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .g-purple { background: linear-gradient(135deg,#b786ff,#ff6f7d); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .g-green  { background: linear-gradient(135deg,#39d98a,#56b6ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+
+    /* ── card grid ───────────────────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      gap: 16px;
+      width: 100%;
+      max-width: 1100px;
+    }
+
+    .card-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .card-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .card-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 20px 18px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s;
+    }
+
+    .card:hover { transform: translateY(-2px); }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--card-color) 8%, transparent), transparent 60%);
+      pointer-events: none;
+    }
+
+    .card-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--card-color) 15%, transparent);
+      border: 1px solid color-mix(in srgb, var(--card-color) 40%, transparent);
+      display: grid;
+      place-items: center;
+      margin-bottom: 12px;
+      font-size: 18px;
+    }
+
+    .card h3 {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: color-mix(in srgb, var(--card-color) 80%, #fff);
+      margin-bottom: 6px;
+      line-height: 1.2;
+    }
+
+    .card p {
+      font-size: 11.5px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .card .tag {
+      display: inline-block;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--card-color);
+      border: 1px solid color-mix(in srgb, var(--card-color) 35%, transparent);
+      border-radius: 4px;
+      padding: 2px 7px;
+      margin-bottom: 8px;
+    }
+
+    /* ── role banner ─────────────────────────────────────────────── */
+    .role-band {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .role-chip {
+      padding: 6px 18px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      border: 1px solid;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    /* ── flow step row ───────────────────────────────────────────── */
+    .flow-row {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      width: 100%;
+      max-width: 1060px;
+    }
+
+    .flow-node {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px 10px;
+      text-align: center;
+      position: relative;
+    }
+
+    .flow-node .step-num {
+      font-size: 10px;
+      font-weight: 900;
+      color: var(--node-color);
+      border: 1px solid color-mix(in srgb, var(--node-color) 50%, transparent);
+      border-radius: 5px;
+      padding: 1px 6px;
+      display: inline-block;
+      margin-bottom: 6px;
+    }
+
+    .flow-node h4 {
+      font-size: 11px;
+      font-weight: 700;
+      color: color-mix(in srgb, var(--node-color) 80%, #fff);
+      line-height: 1.2;
+    }
+
+    .flow-arrow {
+      width: 28px;
+      flex-shrink: 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    /* ── before/after split ──────────────────────────────────────── */
+    .ba-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      width: 100%;
+      max-width: 960px;
+    }
+
+    .ba-col {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 22px 20px;
+    }
+
+    .ba-col h3 {
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 14px;
+    }
+
+    .ba-col ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .ba-col li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .ba-col li .ico { flex-shrink: 0; font-size: 14px; }
+
+    /* ── big stat row ────────────────────────────────────────────── */
+    .stat-row {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      margin-top: 10px;
+    }
+
+    .stat {
+      text-align: center;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 20px 28px;
+      min-width: 140px;
+    }
+
+    .stat .num {
+      font-size: 42px;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .stat .lbl {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      line-height: 1.4;
+    }
+
+    /* ── timeline / step list ────────────────────────────────────── */
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 760px;
+    }
+
+    .step-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px 18px;
+    }
+
+    .step-num-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--step-color) 18%, transparent);
+      border: 2px solid color-mix(in srgb, var(--step-color) 55%, transparent);
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--step-color);
+      flex-shrink: 0;
+    }
+
+    .step-text h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 2px;
+    }
+
+    .step-text p {
+      font-size: 11.5px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    /* ── quote block ─────────────────────────────────────────────── */
+    .quote-block {
+      background: var(--surface);
+      border-left: 3px solid var(--gold);
+      border-radius: 0 10px 10px 0;
+      padding: 18px 22px;
+      max-width: 700px;
+      font-size: 16px;
+      font-style: italic;
+      color: var(--ink);
+      line-height: 1.6;
+    }
+
+    /* ── table ───────────────────────────────────────────────────── */
+    .role-table {
+      width: 100%;
+      max-width: 980px;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 12px;
+    }
+
+    .role-table th {
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+
+    .role-table td {
+      padding: 10px 14px;
+      color: var(--muted);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      vertical-align: top;
+      line-height: 1.55;
+    }
+
+    .role-table tr:last-child td { border-bottom: none; }
+
+    .check { color: var(--green); font-weight: 700; }
+
+    /* ── cover glow orbs ─────────────────────────────────────────── */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      animation: drift 8s ease-in-out infinite alternate;
+    }
+
+    @keyframes drift {
+      from { transform: translate(0,0) scale(1); }
+      to   { transform: translate(20px,15px) scale(1.08); }
+    }
+
+    /* ── pulse dot for live indicator ────────────────────────────── */
+    .pulse-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 0 rgba(57,217,138,0.4);
+      animation: pulse 1.8s ease-in-out infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(57,217,138,0.5); }
+      70%  { box-shadow: 0 0 0 10px rgba(57,217,138,0); }
+      100% { box-shadow: 0 0 0 0 rgba(57,217,138,0); }
+    }
+
+    /* ── section label bar ───────────────────────────────────────── */
+    .section-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .section-bar .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .section-bar span {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+    }
+
+    /* hide scrollbars that might leak */
+    ::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+  <!-- ── SLIDE 1: Cover ─────────────────────────────────────────── -->
+  <div class="slide active" id="s1">
+    <div class="orb" style="width:500px;height:500px;background:rgba(86,182,255,0.12);top:-120px;left:-100px;animation-delay:0s"></div>
+    <div class="orb" style="width:400px;height:400px;background:rgba(183,134,255,0.1);top:-80px;right:-80px;animation-delay:2s"></div>
+    <div class="orb" style="width:360px;height:360px;background:rgba(57,217,138,0.08);bottom:-60px;right:10%;animation-delay:4s"></div>
+
+    <div class="eyebrow">🚀 Team Enablement · Controlled Agentic Development</div>
+
+    <h1 class="hero">
+      <span class="g-blue">AI-Powered</span> Automation<br>
+      <span style="font-size:0.65em;color:var(--muted);font-weight:400">for Developers · Product Owners · Scrum Masters</span>
+    </h1>
+
+    <p class="tagline" style="margin-top:16px">
+      One Automation folder. Five specialised AI agents.<br>
+      <strong style="color:var(--ink)">Less manual toil. More shipping. Full control.</strong>
+    </p>
+
+    <div class="stat-row" style="margin-top:40px">
+      <div class="stat">
+        <div class="num g-blue">5</div>
+        <div class="lbl">Specialised<br>MCP Agents</div>
+      </div>
+      <div class="stat">
+        <div class="num g-green">3</div>
+        <div class="lbl">Roles<br>Automated</div>
+      </div>
+      <div class="stat">
+        <div class="num g-gold">100%</div>
+        <div class="lbl">Approval-<br>gated</div>
+      </div>
+      <div class="stat">
+        <div class="num g-purple">0</div>
+        <div class="lbl">Context<br>switching</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 2: The Problem ───────────────────────────────────── -->
+  <div class="slide" id="s2">
+    <div class="eyebrow">The Problem</div>
+    <h2 class="slide-title">Too much <span class="g-orange">manual overhead</span> slows teams down</h2>
+
+    <div class="ba-grid">
+      <div class="ba-col" style="border-color:rgba(255,111,125,0.25)">
+        <h3 style="color:var(--red)">😩 Before Automation</h3>
+        <ul>
+          <li><span class="ico">📝</span>PO manually writes Jira stories, ACs, regulatory fields — takes 30–60 min per story</li>
+          <li><span class="ico">🌿</span>Dev manually creates branches, writes MR description from scratch every time</li>
+          <li><span class="ico">🧪</span>Dev manually runs tests, collects evidence, pastes into MR</li>
+          <li><span class="ico">🔍</span>SM manually checks story readiness, AC completeness, subtask gaps</li>
+          <li><span class="ico">📋</span>No standard templates → inconsistent quality across team</li>
+          <li><span class="ico">⏳</span>Copilot / Windsurf acts without guardrails → unexpected changes</li>
+        </ul>
+      </div>
+      <div class="ba-col" style="border-color:rgba(57,217,138,0.25)">
+        <h3 style="color:var(--green)">✅ After Automation</h3>
+        <ul>
+          <li><span class="ico">⚡</span>PO says "refine story BDRSP-1413" → structured AC + regulatory fields written in seconds</li>
+          <li><span class="ico">🤖</span>Dev says "implement story" → branch created, code guided, MR drafted automatically</li>
+          <li><span class="ico">🎯</span>Tests auto-detected, run, and evidence attached to MR instantly</li>
+          <li><span class="ico">📊</span>SM gets story readiness report + AC gap analysis on demand</li>
+          <li><span class="ico">📐</span>Every MR and story follows the same governed template</li>
+          <li><span class="ico">🔒</span>Every action requires explicit approval before execution</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 3: What Is It ───────────────────────────────────── -->
+  <div class="slide" id="s3">
+    <div class="eyebrow">What Is It?</div>
+    <h2 class="slide-title">Controlled Agentic Development<br><span style="font-size:0.6em;color:var(--muted);font-weight:400">in one sentence</span></h2>
+
+    <div class="quote-block" style="margin-bottom:32px">
+      "A portable <strong style="color:var(--blue)">Automation folder</strong> you copy into any project. It gives Copilot or Windsurf access to <strong style="color:var(--gold)">specialised AI agents</strong> — but only through <strong style="color:var(--green)">approval-gated, memory-aware workflows</strong> that keep the team in full control."
+    </div>
+
+    <div class="card-grid cols-3" style="max-width:880px">
+      <div class="card" style="--card-color:var(--blue)">
+        <div class="card-icon">📁</div>
+        <h3>Portable Setup</h3>
+        <p>Copy one folder. Run one command. Restart IDE. Done — works in any repo.</p>
+      </div>
+      <div class="card" style="--card-color:var(--gold)">
+        <div class="card-icon">🤖</div>
+        <h3>5 Specialised Agents</h3>
+        <p>Jira · GitLab · Test · Review · Dev — each with its own guardrails and memory.</p>
+      </div>
+      <div class="card" style="--card-color:var(--green)">
+        <div class="card-icon">🔒</div>
+        <h3>Approval Gates</h3>
+        <p>Nothing is written or merged without explicit human approval at every gate.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 4: How It Works ─────────────────────────────────── -->
+  <div class="slide" id="s4">
+    <div class="eyebrow">How It Works</div>
+    <h2 class="slide-title">The <span class="g-blue">9-step</span> routing flow</h2>
+
+    <div class="flow-row" style="margin-bottom:18px">
+      <div class="flow-node" style="--node-color:var(--blue)">
+        <div class="step-num">1</div>
+        <h4>Copy Automation Folder</h4>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="--node-color:var(--gold)">
+        <div class="step-num">2</div>
+        <h4>Add Local Config</h4>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="--node-color:var(--blue)">
+        <div class="step-num">3</div>
+        <h4>Run Profile Command</h4>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="--node-color:var(--red)">
+        <div class="step-num">4</div>
+        <h4>Restart IDE</h4>
+      </div>
+    </div>
+
+    <div class="flow-row" style="margin-bottom:18px">
+      <div class="flow-node" style="--node-color:var(--blue); flex:1.2">
+        <div class="step-num">5</div>
+        <h4>User Request<br><span style="font-size:9px;color:var(--muted);font-weight:400">"implement story X"</span></h4>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="--node-color:var(--red); flex:1.2">
+        <div class="step-num">6</div>
+        <h4>Copilot / Windsurf<br><span style="font-size:9px;color:var(--muted);font-weight:400">selects correct agent</span></h4>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="--node-color:var(--gold); flex:1.2">
+        <div class="step-num">7</div>
+        <h4>MCP Server + Tools<br><span style="font-size:9px;color:var(--muted);font-weight:400">memory · guardrails · gates</span></h4>
+      </div>
+    </div>
+
+    <div class="flow-row">
+      <div class="flow-node" style="--node-color:var(--blue)">
+        <div class="step-num">8a</div>
+        <h4>Jira</h4>
+      </div>
+      <div class="flow-arrow" style="color:rgba(255,255,255,0.15)">·</div>
+      <div class="flow-node" style="--node-color:var(--orange)">
+        <div class="step-num">8b</div>
+        <h4>GitLab</h4>
+      </div>
+      <div class="flow-arrow" style="color:rgba(255,255,255,0.15)">·</div>
+      <div class="flow-node" style="--node-color:var(--green)">
+        <div class="step-num">8c</div>
+        <h4>Test</h4>
+      </div>
+      <div class="flow-arrow" style="color:rgba(255,255,255,0.15)">·</div>
+      <div class="flow-node" style="--node-color:var(--purple)">
+        <div class="step-num">8d</div>
+        <h4>Review</h4>
+      </div>
+      <div class="flow-arrow" style="color:rgba(255,255,255,0.15)">·</div>
+      <div class="flow-node" style="--node-color:var(--red)">
+        <div class="step-num">8e</div>
+        <h4>Dev Flow</h4>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="--node-color:var(--gold); background:rgba(246,207,101,0.06); border-color:rgba(246,207,101,0.25)">
+        <div class="step-num">9</div>
+        <h4>Controlled Result</h4>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 5: For Developers ───────────────────────────────── -->
+  <div class="slide" id="s5">
+    <div class="section-bar">
+      <div class="dot" style="background:var(--blue)"></div>
+      <span style="color:var(--blue)">Role: Developer</span>
+    </div>
+
+    <h2 class="slide-title">What's automated <span class="g-blue">for Developers</span></h2>
+
+    <div class="card-grid cols-2" style="max-width:940px">
+      <div class="card" style="--card-color:var(--red)">
+        <div class="tag">Dev Flow · Agent 5</div>
+        <div class="card-icon">⚙️</div>
+        <h3>End-to-End Story Implementation</h3>
+        <p>Say <em>"implement BDRSP-1413"</em> → agent reads story, validates ACs, analyses codebase, proposes changes, runs tests, and prepares MR — all gated by your approval at each step.</p>
+      </div>
+      <div class="card" style="--card-color:var(--orange)">
+        <div class="tag">GitLab Flow · Agent 2</div>
+        <div class="card-icon">🌿</div>
+        <h3>Safe Branch & MR Management</h3>
+        <p>Auto-creates feature branches with correct naming, writes governed MR descriptions with AC coverage, risk summary, and test evidence. Blocks unsafe actions (force-push to main, etc.).</p>
+      </div>
+      <div class="card" style="--card-color:var(--green)">
+        <div class="tag">Test Flow · Agent 3</div>
+        <div class="card-icon">🧪</div>
+        <h3>Auto-detect & Run Tests</h3>
+        <p>Detects project type (Maven, npm, etc.), discovers test commands, executes suites, summarises pass/fail evidence, and attaches results directly to the MR.</p>
+      </div>
+      <div class="card" style="--card-color:var(--purple)">
+        <div class="tag">Review Flow · Agent 4</div>
+        <div class="card-icon">🔍</div>
+        <h3>Pre-MR Code Review</h3>
+        <p>Reviews changed files against story ACs, identifies missing tests, flags risks, checks Checkstyle/PMD compliance, and produces a readiness summary before the MR is raised.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 6: For Product Owners ──────────────────────────── -->
+  <div class="slide" id="s6">
+    <div class="section-bar">
+      <div class="dot" style="background:var(--gold)"></div>
+      <span style="color:var(--gold)">Role: Product Owner</span>
+    </div>
+
+    <h2 class="slide-title">What's automated <span class="g-gold">for Product Owners</span></h2>
+
+    <div class="card-grid cols-3" style="max-width:980px;margin-bottom:20px">
+      <div class="card" style="--card-color:var(--blue)">
+        <div class="tag">Jira Flow · Agent 1</div>
+        <div class="card-icon">📋</div>
+        <h3>Story Refinement</h3>
+        <p>AI reads the story, checks parent Feature context, sibling stories, and proposes a professional title, description, and ACs aligned with the feature goal.</p>
+      </div>
+      <div class="card" style="--card-color:var(--gold)">
+        <div class="tag">Jira Flow · Agent 1</div>
+        <div class="card-icon">✅</div>
+        <h3>Acceptance Criteria Writing</h3>
+        <p>Generates Given/When/Then ACs covering happy path, edge cases, regression safety, and CI gate requirements. You approve before anything is written to Jira.</p>
+      </div>
+      <div class="card" style="--card-color:var(--purple)">
+        <div class="tag">Jira Flow · Agent 1</div>
+        <div class="card-icon">🏛️</div>
+        <h3>Regulatory & Governance Fields</h3>
+        <p>Auto-fills Regulatory Justification, Reason/Comments, and traceability fields in Jira — ensuring ASPICE compliance without manual copy-paste.</p>
+      </div>
+    </div>
+
+    <div class="card-grid cols-2" style="max-width:940px">
+      <div class="card" style="--card-color:var(--green)">
+        <div class="card-icon">🔗</div>
+        <h3>Feature Context Awareness</h3>
+        <p>Before writing anything, the agent reads the parent Feature (e.g. BDATART-686), all sibling stories, completed work, and open gaps — so every story is aligned with the feature goal.</p>
+      </div>
+      <div class="card" style="--card-color:var(--orange)">
+        <div class="card-icon">📊</div>
+        <h3>Story Analysis & Gap Detection</h3>
+        <p>Reads existing story content, identifies missing ACs, ambiguous scope, and duplicate blocks — then proposes clean, deduplicated, crisp story content for your review.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 7: For Scrum Masters ───────────────────────────── -->
+  <div class="slide" id="s7">
+    <div class="section-bar">
+      <div class="dot" style="background:var(--green)"></div>
+      <span style="color:var(--green)">Role: Scrum Master</span>
+    </div>
+
+    <h2 class="slide-title">What's automated <span class="g-green">for Scrum Masters</span></h2>
+
+    <div class="card-grid cols-3" style="max-width:980px;margin-bottom:20px">
+      <div class="card" style="--card-color:var(--green)">
+        <div class="card-icon">🚦</div>
+        <h3>Story Readiness Checks</h3>
+        <p>Instantly check whether a story has description, ACs, regulatory justification, and correct parent feature link before sprint planning — no manual checklist needed.</p>
+      </div>
+      <div class="card" style="--card-color:var(--blue)">
+        <div class="card-icon">🗂️</div>
+        <h3>Subtask Planning</h3>
+        <p>Agent suggests minimal, scoped subtasks based on story scope and codebase analysis. SM approves the plan before subtasks are created in Jira.</p>
+      </div>
+      <div class="card" style="--card-color:var(--gold)">
+        <div class="card-icon">📈</div>
+        <h3>Feature Progress Visibility</h3>
+        <p>Pulls parent feature context, lists completed, in-progress, and pending stories — giving SM a clear sprint health view without leaving the IDE.</p>
+      </div>
+    </div>
+
+    <div class="card-grid cols-2" style="max-width:940px">
+      <div class="card" style="--card-color:var(--purple)">
+        <div class="card-icon">🤝</div>
+        <h3>Team Coordination Stories</h3>
+        <p>For coordination stories (like ForgeApp link-type config), agent documents the outcome, contacts, and completion criteria — keeping the history traceable in Jira.</p>
+      </div>
+      <div class="card" style="--card-color:var(--red)">
+        <div class="card-icon">🛡️</div>
+        <h3>Governance Compliance</h3>
+        <p>Enforces mandatory fields (regulatory justification, parent feature link) before any story update is applied — SM never needs to chase PO for missing fields.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 8: The 5 Agents ─────────────────────────────────── -->
+  <div class="slide" id="s8">
+    <div class="eyebrow">Architecture</div>
+    <h2 class="slide-title">The <span class="g-purple">5 Specialised Agents</span></h2>
+
+    <div class="card-grid cols-3" style="max-width:980px;margin-bottom:16px">
+      <div class="card" style="--card-color:var(--blue)">
+        <div class="tag">jira-mcp</div>
+        <div class="card-icon">📋</div>
+        <h3>Jira Agent</h3>
+        <p>Story reading · Refinement · AC generation · Subtask planning · Feature context · Regulatory fields</p>
+      </div>
+      <div class="card" style="--card-color:var(--orange)">
+        <div class="tag">gitlab-mcp</div>
+        <div class="card-icon">🌿</div>
+        <h3>GitLab Agent</h3>
+        <p>Branch safety · MR creation · MR description templates · Repo state validation · Unsafe action blocking</p>
+      </div>
+      <div class="card" style="--card-color:var(--green)">
+        <div class="tag">test-mcp</div>
+        <div class="card-icon">🧪</div>
+        <h3>Test Agent</h3>
+        <p>Project type detection · Command discovery · Test execution · Evidence collection · Failure triage</p>
+      </div>
+    </div>
+    <div class="card-grid cols-2" style="max-width:640px">
+      <div class="card" style="--card-color:var(--purple)">
+        <div class="tag">review-mcp</div>
+        <div class="card-icon">🔍</div>
+        <h3>Review Agent</h3>
+        <p>AC coverage check · Risk flagging · Checkstyle/PMD compliance · Pre-MR readiness report</p>
+      </div>
+      <div class="card" style="--card-color:var(--red)">
+        <div class="tag">dev-mcp</div>
+        <div class="card-icon">⚙️</div>
+        <h3>Dev Flow Agent</h3>
+        <p>Full gated workflow: story → analyse → code → test → review → MR. One command, all stages.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 9: Approval Gates & Control ────────────────────── -->
+  <div class="slide" id="s9">
+    <div class="eyebrow">Safety & Control</div>
+    <h2 class="slide-title">You are <span class="g-gold">always in control</span></h2>
+
+    <div class="steps" style="max-width:860px">
+      <div class="step-row" style="--step-color:var(--blue)">
+        <div class="step-num-circle">1</div>
+        <div class="step-text">
+          <h4>Proposal First — Never Silent Writes</h4>
+          <p>Every agent shows a proposal (story update, code change, MR description) and waits for your explicit "yes" before writing anything to Jira, GitLab, or the filesystem.</p>
+        </div>
+      </div>
+      <div class="step-row" style="--step-color:var(--gold)">
+        <div class="step-num-circle">2</div>
+        <div class="step-text">
+          <h4>Memory — Agents Remember Context</h4>
+          <p>LangGraph-powered memory keeps track of prior decisions, story history, and team preferences — so agents don't ask the same questions twice.</p>
+        </div>
+      </div>
+      <div class="step-row" style="--step-color:var(--green)">
+        <div class="step-num-circle">3</div>
+        <div class="step-text">
+          <h4>Guardrails — Agents Can't Go Rogue</h4>
+          <p>Each agent has hard-coded safety rules: no force-push to protected branches, no applying story updates without parent Feature, no skipping regulatory justification.</p>
+        </div>
+      </div>
+      <div class="step-row" style="--step-color:var(--purple)">
+        <div class="step-num-circle">4</div>
+        <div class="step-text">
+          <h4>Profile Isolation — Least Privilege</h4>
+          <p>Each profile exposes only the tools needed for that workflow. A test profile can't touch Jira. A Jira profile can't push code. Tools are siloed by design.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 10: Live Demo Example ──────────────────────────── -->
+  <div class="slide" id="s10">
+    <div class="eyebrow"><span class="pulse-dot"></span>Live Example</div>
+    <h2 class="slide-title">Developer says: <span class="g-blue">"implement BDRSP-1413"</span></h2>
+
+    <div class="steps" style="max-width:900px">
+      <div class="step-row" style="--step-color:var(--blue)">
+        <div class="step-num-circle">①</div>
+        <div class="step-text">
+          <h4>Agent reads Jira story</h4>
+          <p>Dev Flow agent fetches BDRSP-1413: description, ACs, Feature context (BDATART-686), sibling stories, and existing comments.</p>
+        </div>
+      </div>
+      <div class="step-row" style="--step-color:var(--gold)">
+        <div class="step-num-circle">②</div>
+        <div class="step-text">
+          <h4>Codebase analysis + Jira update proposed</h4>
+          <p>Agent scans repo, identifies impacted files (UsecaseUtil, ObservabilityAspect), proposes Jira story update. <strong style="color:var(--gold)">Awaits developer approval.</strong></p>
+        </div>
+      </div>
+      <div class="step-row" style="--step-color:var(--green)">
+        <div class="step-num-circle">③</div>
+        <div class="step-text">
+          <h4>Code changes implemented</h4>
+          <p>After approval, agent implements the two new constants, Rhapsody branch logic, metric mapping, and Javadoc. <strong style="color:var(--gold)">Awaits another approval.</strong></p>
+        </div>
+      </div>
+      <div class="step-row" style="--step-color:var(--purple)">
+        <div class="step-num-circle">④</div>
+        <div class="step-text">
+          <h4>Tests run → Review → MR drafted</h4>
+          <p>Maven tests run automatically, review checks AC coverage and PMD/Checkstyle, MR description is written with evidence. Developer opens the MR with one click.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 11: Role Summary Table ─────────────────────────── -->
+  <div class="slide" id="s11">
+    <div class="eyebrow">Summary</div>
+    <h2 class="slide-title">Who does <span class="g-green">what</span> — at a glance</h2>
+
+    <table class="role-table">
+      <thead>
+        <tr>
+          <th style="color:var(--muted)">Action</th>
+          <th style="color:var(--blue)">👨‍💻 Developer</th>
+          <th style="color:var(--gold)">📊 Product Owner</th>
+          <th style="color:var(--green)">🧭 Scrum Master</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Write / refine Jira story</td>
+          <td></td>
+          <td><span class="check">✓ Automated (Jira Agent)</span></td>
+          <td><span class="check">✓ Review &amp; approve</span></td>
+        </tr>
+        <tr>
+          <td>Write Acceptance Criteria</td>
+          <td></td>
+          <td><span class="check">✓ Automated (Jira Agent)</span></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>Check story readiness</td>
+          <td></td>
+          <td></td>
+          <td><span class="check">✓ Automated (Jira Agent)</span></td>
+        </tr>
+        <tr>
+          <td>Create feature branch</td>
+          <td><span class="check">✓ Automated (GitLab Agent)</span></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>Run tests &amp; collect evidence</td>
+          <td><span class="check">✓ Automated (Test Agent)</span></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>Pre-MR code review</td>
+          <td><span class="check">✓ Automated (Review Agent)</span></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>Draft MR description</td>
+          <td><span class="check">✓ Automated (GitLab Agent)</span></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>Plan subtasks</td>
+          <td></td>
+          <td></td>
+          <td><span class="check">✓ Automated (Jira Agent)</span></td>
+        </tr>
+        <tr>
+          <td>Full implementation workflow</td>
+          <td><span class="check">✓ Automated (Dev Flow Agent)</span></td>
+          <td></td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── SLIDE 12: Get Started ─────────────────────────────────── -->
+  <div class="slide" id="s12">
+    <div class="orb" style="width:400px;height:400px;background:rgba(57,217,138,0.09);bottom:0;right:0;animation-delay:1s"></div>
+    <div class="orb" style="width:350px;height:350px;background:rgba(246,207,101,0.08);top:0;left:0;animation-delay:3s"></div>
+
+    <div class="eyebrow">Get Started</div>
+    <h2 class="slide-title">Up and running in <span class="g-green">4 steps</span></h2>
+
+    <div class="card-grid cols-4" style="max-width:980px;margin-bottom:28px">
+      <div class="card" style="--card-color:var(--blue); text-align:center">
+        <div style="font-size:28px;margin-bottom:10px">📁</div>
+        <h3>1. Copy</h3>
+        <p>Copy the <code style="color:var(--blue);font-size:10px">Automation/</code> folder into your project repo</p>
+      </div>
+      <div class="card" style="--card-color:var(--gold); text-align:center">
+        <div style="font-size:28px;margin-bottom:10px">🔑</div>
+        <h3>2. Configure</h3>
+        <p>Add your Jira &amp; GitLab credentials to the local env file</p>
+      </div>
+      <div class="card" style="--card-color:var(--green); text-align:center">
+        <div style="font-size:28px;margin-bottom:10px">▶️</div>
+        <h3>3. Run</h3>
+        <p>Run <code style="color:var(--green);font-size:10px">start.sh --profile jira</code> (or dev / gitlab / test / review)</p>
+      </div>
+      <div class="card" style="--card-color:var(--purple); text-align:center">
+        <div style="font-size:28px;margin-bottom:10px">💻</div>
+        <h3>4. Restart IDE</h3>
+        <p>Restart Copilot / Windsurf — agents are live immediately</p>
+      </div>
+    </div>
+
+    <div class="quote-block" style="border-color:var(--green); border-width:2px; background:rgba(57,217,138,0.05); font-style:normal; font-size:14px">
+      <strong style="color:var(--green)">Pro tip:</strong> Each profile activates only the tools relevant to your role. POs use the <code>jira</code> profile. Devs use <code>dev</code> or <code>gitlab</code>. SMs use <code>jira</code>. No profile exposes tools it shouldn't.
+    </div>
+  </div>
+
+  <!-- ── SLIDE 13: Q&A / Thank you ────────────────────────────── -->
+  <div class="slide" id="s13">
+    <div class="orb" style="width:600px;height:600px;background:rgba(183,134,255,0.09);top:-100px;right:-100px;animation-delay:0s"></div>
+    <div class="orb" style="width:500px;height:500px;background:rgba(86,182,255,0.08);bottom:-80px;left:-60px;animation-delay:2.5s"></div>
+
+    <div class="eyebrow">Thank you</div>
+
+    <h1 class="hero" style="font-size:clamp(28px,4vw,56px);margin-bottom:24px">
+      Questions &amp; <span class="g-purple">Discussion</span>
+    </h1>
+
+    <p class="tagline" style="margin-bottom:36px;font-size:15px">
+      The full routing diagram is in <strong style="color:var(--blue)">Automation/docs/automation-routing-diagram.html</strong><br>
+      Setup guide is in <strong style="color:var(--blue)">Automation/README.md</strong>
+    </p>
+
+    <!-- benefits deep-dive link -->
+    <a href="controlled-agentic-development-benefits.html" target="_blank"
+       style="display:inline-flex;align-items:center;gap:10px;margin-bottom:32px;
+              text-decoration:none;color:var(--green);font-size:13px;font-weight:700;
+              border:1px solid rgba(57,217,138,0.32);background:rgba(57,217,138,0.08);
+              padding:11px 24px;border-radius:24px;transition:background .2s;"
+       onmouseover="this.style.background='rgba(57,217,138,0.16)'"
+       onmouseout="this.style.background='rgba(57,217,138,0.08)'">
+      📊 &nbsp;View Full Benefits & Efficiency Report →
+    </a>
+
+    <div class="card-grid cols-3" style="max-width:820px">
+      <div class="card" style="--card-color:var(--blue); text-align:center">
+        <div style="font-size:22px;margin-bottom:8px">📋</div>
+        <h3>For POs &amp; SMs</h3>
+        <p>Start with: <br><em>"refine story [JIRA-ID]"</em><br>or<br><em>"analyze story [JIRA-ID]"</em></p>
+      </div>
+      <div class="card" style="--card-color:var(--green); text-align:center">
+        <div style="font-size:22px;margin-bottom:8px">👨‍💻</div>
+        <h3>For Developers</h3>
+        <p>Start with:<br><em>"implement story [JIRA-ID]"</em><br>or<br><em>"prepare MR for [branch]"</em></p>
+      </div>
+      <div class="card" style="--card-color:var(--gold); text-align:center">
+        <div style="font-size:22px;margin-bottom:8px">🛡️</div>
+        <h3>Remember</h3>
+        <p>Every proposal waits for <strong style="color:var(--gold)">your approval</strong> before anything changes. You are always in control.</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<!-- ── nav buttons ────────────────────────────────────────────── -->
+<button class="nav-btn prev" onclick="go(-1)" title="Previous">‹</button>
+<button class="nav-btn next" onclick="go(+1)" title="Next">›</button>
+<div class="progress" id="progress"></div>
+<div class="counter" id="counter"></div>
+<div class="nav-hint">← → arrow keys or click to navigate · Space to advance</div>
+
+<script>
+  var slides = Array.from(document.querySelectorAll('.slide'));
+  var total  = slides.length;
+  var cur    = 0;
+
+  function show(idx) {
+    slides[cur].classList.remove('active');
+    slides[cur].classList.add('exit');
+    setTimeout((function(old){ return function(){ slides[old].classList.remove('exit'); }; })(cur), 500);
+
+    cur = (idx + total) % total;
+    slides[cur].classList.add('active');
+
+    /* progress */
+    document.getElementById('progress').style.width = ((cur + 1) / total * 100) + '%';
+    document.getElementById('counter').textContent = (cur + 1) + ' / ' + total;
+  }
+
+  function go(dir) { show(cur + dir); }
+
+  /* keyboard */
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'ArrowDown') { e.preventDefault(); go(+1); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                    { e.preventDefault(); go(-1); }
+  });
+
+  /* click anywhere (not on buttons) to advance */
+  document.querySelector('.deck').addEventListener('click', function(e) {
+    if (!e.target.closest('.nav-btn')) go(+1);
+  });
+
+  /* init */
+  show(0);
+</script>
+</body>
+</html>
+

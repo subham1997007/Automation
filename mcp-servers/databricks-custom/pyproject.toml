@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "databricks-custom-mcp"
+version = "1.0.0"
+description = "Custom owned Databricks MCP server — all 44 tools in one file"
+requires-python = ">=3.10"
+
+dependencies = [
+    "fastmcp>=2.0",
+    "mcp>=1.0",
+    "databricks-tools-core>=0.1.0",
+    "databricks-sdk>=0.81.0",
+    "requests>=2.31.0",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
