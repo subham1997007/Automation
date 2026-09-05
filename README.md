@@ -29,6 +29,20 @@
 
 The assistant gathers context and prepares a proposal first. Code changes and external writes happen only after the user reviews the intended action.
 
+## ✨ Live animated architecture
+
+<p align="center">
+  <a href="https://subham1997007.github.io/Automation/automation-routing-diagram_full.html">
+    <img src="docs/assets/devflow-integrations.svg" alt="Open the interactive Automation DevFlow routing animation" width="100%">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://subham1997007.github.io/Automation/automation-routing-diagram_full.html"><strong>▶ Open the full-screen animated routing diagram</strong></a>
+</p>
+
+Follow the moving routes from setup and Jira context through approval gates, implementation, testing, review, GitLab, and optional Databricks tools.
+
 ---
 
 ## 🚀 Quick start (any repo)
