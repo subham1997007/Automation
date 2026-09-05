@@ -1,4 +1,4 @@
-# 🤖 Automation DevFlow — Controlled Agentic Development
+# 🤖 Controlled DevFlow — Controlled Agentic Development
 
 > Drop this folder into **any** Git repo. One command later, your AI assistant (Copilot, Windsurf, Cursor) has full Jira, GitLab, Databricks, and code-search superpowers — with guardrails so it never writes without your approval.
 
@@ -32,7 +32,7 @@ The assistant gathers context and prepares a proposal first. Code changes and ex
 ## ✨ Live animated architecture
 
 <p align="center">
-  <a href="https://subham1997007.github.io/Automation/automation-routing-diagram_full.html">
+  <a href="https://subham1997007.github.io/controlled-devflow/automation-routing-diagram_full.html">
     <img src="docs/assets/devflow-integrations.svg" alt="Open the interactive Automation DevFlow routing animation" width="100%">
   </a>
 </p>
@@ -217,4 +217,8 @@ Pull requests welcome. The framework is designed to be:
 
 ## 📄 License
 
-MIT
+Original Controlled DevFlow code is available under the [MIT License](LICENSE).
+The bundled `databricks-tools-core` component remains under the Databricks DB
+License, which limits its use to Databricks Services. See
+[Third-Party Notices](THIRD_PARTY_NOTICES.md) for its source, exact revision,
+license, and redistribution conditions.
