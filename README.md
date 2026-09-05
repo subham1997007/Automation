@@ -2,6 +2,10 @@
 
 > Drop this folder into **any** Git repo. One command later, your AI assistant (Copilot, Windsurf, Cursor) has full Jira, GitLab, Databricks, and code-search superpowers — with guardrails so it never writes without your approval.
 
+<p align="center">
+  <img src="docs/assets/devflow-hero.svg" alt="Automation DevFlow — controlled agentic development" width="100%">
+</p>
+
 ---
 
 ## ✨ What this does
@@ -16,6 +20,14 @@
 | **test-mcp** | Targeted test execution and result analysis |
 
 **Every write action requires explicit user approval before executing.**
+
+## 🔄 End-to-end workflow
+
+<p align="center">
+  <img src="docs/assets/devflow-workflow.svg" alt="Jira story to repository context, AI proposal, human approval, tested code, and GitLab merge request" width="100%">
+</p>
+
+The assistant gathers context and prepares a proposal first. Code changes and external writes happen only after the user reviews the intended action.
 
 ---
 
@@ -70,24 +82,9 @@ Automation/
 
 ## 🔒 How guardrails work
 
-```
-User asks AI                     AI (Copilot/Windsurf/Cursor)
-    │                                       │
-    │                              calls dev_implement_story()
-    │                                       │
-    │                              ┌────────▼────────────┐
-    │                              │     MCP Server       │
-    │                              │  1. Read Jira story  │
-    │                              │  2. Scan codebase    │
-    │                              │  3. Load Confluence  │
-    │                              │  4. Propose changes  │
-    │                              └────────┬────────────┘
-    │◄──── shows proposal ─────────────────┘
-    │
-    │  YOU approve / reject
-    │
-    └──── AI applies approved change only
-```
+<p align="center">
+  <img src="docs/assets/devflow-integrations.svg" alt="AI assistants connect through Automation DevFlow to Jira, Confluence, GitLab, repository knowledge, tests, and Databricks" width="100%">
+</p>
 
 **AI never writes to Jira, GitLab, or Databricks without your explicit approval.**
 
